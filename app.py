@@ -1,4 +1,7 @@
 import streamlit as st
+from views.page_lead import load_page_leads  # Import directly from the module
+from views.page_sales import load_page_sales
+
 
 # Set page config first
 st.set_page_config(
@@ -7,18 +10,23 @@ st.set_page_config(
     layout="wide"
 )
 
-from views import leads
-
 def main():
     # Sidebar
-    st.sidebar.title("Navigation")
+    st.sidebar.title("Menu")
     page = st.sidebar.selectbox(
-        "Choose a page",
-        ["Leads"]
+        "Selecione a página",
+        [
+        "2 - Vendas",
+        "10 - Leads" 
+        ]
     )
     
-    if page == "Leads":
-        leads.show_leads_analytics()
-
+    if page == "2 - Vendas":
+        load_page_sales()
+    
+    elif page == "10 - Leads":
+        load_page_leads()
+    
+    
 if __name__ == "__main__":
     main()

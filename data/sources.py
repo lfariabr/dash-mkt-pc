@@ -1,3 +1,3 @@
 # Receive 'source' 
-FONTES_PAGAS = ['Facebook Leads', 'Facebook Postlink', 'Google Pesquisa']
-FONTES_ORGANICAS = ['Instagram', 'Facebook', 'CRM Bônus']
+paid_sources = ['Facebook Leads', 'Facebook Postlink', 'Google Pesquisa']
+organic_sources = ['Instagram', 'Facebook', 'CRM Bônus', 'Acesso Direto ao Site']
