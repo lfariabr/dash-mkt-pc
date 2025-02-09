@@ -5,9 +5,7 @@ from pathlib import Path
 from datetime import datetime, timedelta
 from data.sources import paid_sources, organic_sources
 from data.stores import stores_to_remove
-# from views.leads.lead_category import categorize
-
-# Constants
+from views.leads.lead_category import categorize, process_lead_categories
 
 def load_data():
     """Load and preprocess leads data."""
@@ -55,7 +53,8 @@ def load_page_leads():
     if selected_store != "Todas":
         df_leads = df_leads[df_leads['Unidade'] == selected_store]
     
-    # Overview metrics
+    ########
+    # Header
     st.header("Visão Geral")
     col1, col2, col3, col4 = st.columns(4)
     
@@ -64,15 +63,15 @@ def load_page_leads():
     with col2:
         st.metric("Total de Unidades", df_leads['Unidade'].nunique())
     with col3:
-        conversion_rate = (df_leads['Status'] == 'Convertido').mean() * 100
-        st.metric("Taxa de Conversão", f"{conversion_rate:.1f}%")
+        total_days_count = df_leads['Dia'].nunique()
+        st.metric("Dias Até Ontem", total_days_count)
     with col4:
         avg_leads_per_day = len(df_leads) / df_leads['Dia'].nunique()
         st.metric("Média de Leads/Dia", f"{avg_leads_per_day:.1f}")
     st.markdown("---")
-
-    st.header("Análise Detalhada")
     
+    #######
+    # Div 1 Análise Detalhada: Leads por Dia do Mês e Leads por Unidade
     col1, col2 = st.columns(2)
     
     with col1:
@@ -108,6 +107,8 @@ def load_page_leads():
         )
         st.plotly_chart(fig_store, use_container_width=True)
     
+    #######
+    # Div 2: Distribuição de Leads por Fonte e Distribuição de Leads por Status
     col1, col2 = st.columns(2)
     
     with col1:
@@ -142,42 +143,35 @@ def load_page_leads():
             hole=0.4
         )
         st.plotly_chart(fig_status, use_container_width=True)
+    
+    #######
+    # Div 3: Distribuição de Leads por Categoria e Dia
 
+    df_leads = process_lead_categories(df_leads)
 
-    st.markdown("##### Entrada Diária de Leads por Loja")
-    groupby_store_leads_by_day = (
+    groupby_category_leads_by_day = (
         df_leads
-        .groupby(['Unidade', 'Dia'])
+        .groupby(['Categoria', 'Dia'])
         .agg({'ID do lead': 'nunique'})
         .reset_index()
+        .pivot(index='Dia', columns='Categoria', values='ID do lead')
+        .fillna(0)
+        .reset_index()
+        .melt(id_vars=['Dia'], var_name='Categoria', value_name='ID do lead')
     )
-
-    pivot_store_leads_by_day = (
-        groupby_store_leads_by_day
-        .pivot_table(
-            values='ID do lead',
-            index='Dia',
-            columns='Unidade',
-            aggfunc='sum'
-        )
+    
+    fig_category_leads_by_day = px.bar(
+        groupby_category_leads_by_day,
+        x='Dia',
+        y='ID do lead',
+        color='Categoria',
+        title='Distribuição de Leads por Categoria e Dia'
     )
+    st.plotly_chart(fig_category_leads_by_day, use_container_width=True)
 
-    st.dataframe(pivot_store_leads_by_day)
-
-    st.markdown("##### Categoria dos Leads")
-    # df_leads['Categoria'] = df_leads['Content'].apply(categorize)
-    # st.dataframe(df_leads)
-    st.write("")
-    st.write("")
-    st.write("")
-    st.write("")
-    st.write("Em desenvolvimento... loading...")
-    st.write("")
-    st.write("")
-    st.write("")
-    st.write("")
-    
-    
+    ########
+    # Div 4: Distribuição de Leads por Fonte Paga e Orgânica 
+    st.markdown("---")
     st.markdown("##### Análise por Tipo de Fonte")
     tab1, tab2 = st.tabs(["Fontes Pagas", "Fontes Orgânícas"])
 
@@ -225,6 +219,7 @@ def load_page_leads():
                 aggfunc='sum'
             )
         )
+        st.markdown("##### Distribuição de Leads por Fonte Paga")
         st.dataframe(pivot_store_by_paid_source, use_container_width=True)
 
     with tab2:
@@ -271,8 +266,31 @@ def load_page_leads():
                 aggfunc='sum'
             )
         )
+        st.markdown("##### Distribuição de Leads por Fonte Orgânica")
         st.dataframe(pivot_store_by_organic_source, use_container_width=True)
 
+    #######
+    # Div 5: Entrada Diária de Leads por Loja
+    st.markdown("---")
+    st.markdown("##### Entrada Diária de Leads por Loja")
+    groupby_store_leads_by_day = (
+        df_leads
+        .groupby(['Unidade', 'Dia'])
+        .agg({'ID do lead': 'nunique'})
+        .reset_index()
+    )
+
+    pivot_store_leads_by_day = (
+        groupby_store_leads_by_day
+        .pivot_table(
+            values='ID do lead',
+            index='Dia',
+            columns='Unidade',
+            aggfunc='sum'
+        )
+    )
+
+    st.dataframe(pivot_store_leads_by_day)
 
     st.header("Download dos Dados")
     if st.download_button(
