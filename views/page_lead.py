@@ -5,19 +5,26 @@ from pathlib import Path
 from datetime import datetime, timedelta
 from data.sources import paid_sources, organic_sources
 from data.stores import stores_to_remove
-from views.leads.lead_category import categorize, process_lead_categories
+from data.date_intervals import days_map, available_periods
+from components.headers import header_leads
+from helpers.date import transform_date_from_leads
+from views.leads.lead_category import process_lead_categories
+from views.leads.leads_grouper import (
+                                        groupby_leads_por_dia,
+                                        groupby_leads_por_unidade,
+                                        groupby_leads_por_fonte,
+                                        groupby_leads_por_status,
+                                        groupby_unidade_fonte_paga,
+                                        groupby_unidade_fonte_organica
+                                    )
 
 def load_data():
     """Load and preprocess leads data."""
-    leads = 'db/leads.xlsx' # Change this later on #TODO
+    leads = 'db/leads.xlsx' #TODO
 
     df = pd.read_excel(leads)
     df = df.loc[~df['Unidade'].isin(stores_to_remove)]
-    
-    df['Dia da entrada'] = pd.to_datetime(df['Dia da entrada'])
-    df['Dia'] = df['Dia da entrada'].dt.day
-    df['Mês'] = df['Dia da entrada'].dt.month
-    df['Dia da Semana'] = df['Dia da entrada'].dt.day_name()
+    df = transform_date_from_leads(df)
     
     return df
 
@@ -29,21 +36,16 @@ def create_time_filtered_df(df, days=None):
     return df
 
 def load_page_leads():
-    """Main function to display leads analytics."""
-    st.title("📊 10 - Leads")
+    """Main function to display leads data."""
     
+
+    st.title("📊 10 - Leads")
     df_leads = load_data()
     
     st.sidebar.header("Filtros")
     time_filter = st.sidebar.selectbox(
-        "Período",
-        ["Todos os dados", "Últimos 7 dias", "Últimos 30 dias", "Últimos 90 dias"]
-    )    
-    days_map = {
-        "Últimos 7 dias": 7,
-        "Últimos 30 dias": 30,
-        "Últimos 90 dias": 90
-    }
+        "Período", available_periods
+    )
     if time_filter != "Todos os dados":
         df_leads = create_time_filtered_df(df_leads, days_map[time_filter])
     
@@ -55,31 +57,14 @@ def load_page_leads():
     
     ########
     # Header
-    st.header("Visão Geral")
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        st.metric("Total de Leads", len(df_leads))
-    with col2:
-        st.metric("Total de Unidades", df_leads['Unidade'].nunique())
-    with col3:
-        total_days_count = df_leads['Dia'].nunique()
-        st.metric("Dias Até Ontem", total_days_count)
-    with col4:
-        avg_leads_per_day = len(df_leads) / df_leads['Dia'].nunique()
-        st.metric("Média de Leads/Dia", f"{avg_leads_per_day:.1f}")
-    st.markdown("---")
+    header_leads(df_leads)
     
     #######
     # Div 1 Análise Detalhada: Leads por Dia do Mês e Leads por Unidade
     col1, col2 = st.columns(2)
     
     with col1:
-        groupby_leads_by_day = (df_leads
-                                .groupby('Dia')                 
-                                .agg({'ID do lead': 'nunique'})  
-                                .reset_index()                   
-                            )
+        groupby_leads_by_day = groupby_leads_por_dia(df_leads)
         
         fig_day = px.line(
             groupby_leads_by_day,
@@ -92,11 +77,7 @@ def load_page_leads():
         st.plotly_chart(fig_day, use_container_width=True)
     
     with col2:
-        groupby_leads_by_store = (df_leads
-                                    .groupby('Unidade')                 
-                                    .agg({'ID do lead': 'nunique'})  
-                                    .reset_index()                   
-                                )
+        groupby_leads_by_store = groupby_leads_por_unidade(df_leads)
         
         fig_store = px.bar(
             groupby_leads_by_store,
@@ -112,12 +93,7 @@ def load_page_leads():
     col1, col2 = st.columns(2)
     
     with col1:
-        groupby_leads_by_source = (
-                                df_leads
-                                .groupby('Fonte')
-                                .agg({'ID do lead': 'nunique'})
-                                .reset_index()
-                                )
+        groupby_leads_by_source = groupby_leads_por_fonte(df_leads)
         
         fig_source = px.pie(
             groupby_leads_by_source,
@@ -129,12 +105,8 @@ def load_page_leads():
         st.plotly_chart(fig_source, use_container_width=True)
     
     with col2:
-        groupby_leads_by_status = (
-                                    df_leads
-                                    .groupby('Status')
-                                    .agg({'ID do lead': 'nunique'})
-                                    .reset_index()
-                                )
+        groupby_leads_by_status = groupby_leads_por_status(df_leads)
+        
         fig_status = px.pie(
             groupby_leads_by_status,
             names='Status',
@@ -179,16 +151,9 @@ def load_page_leads():
         col1, col2 = st.columns(2)
 
         with col1:
-            groupby_store_by_paid_source = (
-                df_leads[df_leads['Fonte'].isin(paid_sources)]
-                .groupby(['Unidade', 'Fonte'])
-                .agg({
-                    'ID do lead': 'nunique',
-                    'Status': lambda x: (x == 'Convertido').mean() * 100
-                })
-                .round(2)
-                .reset_index()
-            )
+            groupby_store_by_paid_source = groupby_unidade_fonte_paga(
+                                            df_leads[df_leads['Fonte'].isin(paid_sources)]
+                                        )
             
             fig_paid_source = px.bar(
                 groupby_store_by_paid_source,
@@ -224,17 +189,9 @@ def load_page_leads():
 
     with tab2:
         col1, col2 = st.columns(2)
-
         with col1:
-            groupby_store_by_organic_source = (
+            groupby_store_by_organic_source = groupby_unidade_fonte_organica(
                 df_leads[df_leads['Fonte'].isin(organic_sources)]
-                .groupby(['Unidade', 'Fonte'])
-                .agg({
-                    'ID do lead': 'nunique',
-                    'Status': lambda x: (x == 'Convertido').mean() * 100
-                })
-                .round(2)
-                .reset_index()
             )
             
             fig_organic_source = px.bar(

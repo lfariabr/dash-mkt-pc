@@ -1,11 +1,9 @@
 import streamlit as st
-from views.page_lead import load_page_leads  # Import directly from the module
+from views.page_lead import load_page_leads
 from views.page_sales import load_page_sales
 
-
-# Set page config first
 st.set_page_config(
-    page_title="Dash",
+    page_title="Dash Pró-Corpo",
     page_icon="📊",
     layout="wide"
 )

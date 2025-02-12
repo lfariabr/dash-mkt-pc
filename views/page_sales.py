@@ -4,18 +4,22 @@ import plotly.express as px
 from pathlib import Path
 from datetime import datetime, timedelta
 from data.stores import stores_to_remove
+from data.date_intervals import available_periods, days_map
+from components.headers import header_sales
+from helpers.date import transform_date_from_sales
+from views.sales.sales_grouper import (
+                                        groupby_sales_por_dia,
+                                        groupby_sales_por_unidade,
+                                        groupby_sales_por_profissao,
+                                        groupby_sales_por_vendedoras)
 
 def load_data():
     """Load and preprocess sales data."""
-    sales = 'db/sales.xlsx' # Change this later on #TODO
+    sales = 'db/sales.xlsx' #TODO
 
     df = pd.read_excel(sales)
     df = df.loc[~df['Unidade'].isin(stores_to_remove)]
-    
-    df['Data venda'] = pd.to_datetime(df['Data venda'])
-    df['Dia'] = df['Data venda'].dt.day
-    df['Mês'] = df['Data venda'].dt.month
-    df['Dia da Semana'] = df['Data venda'].dt.day_name()
+    df = transform_date_from_sales(df)
     
     return df
 
@@ -27,21 +31,15 @@ def create_time_filtered_df(df, days=None):
     return df
 
 def load_page_sales():
-    """Main function to display sales analytics."""
+    """Main function to display sales data."""
+
     st.title("📊 2 - Sales")
-    
     df_sales = load_data()
-    
+
     st.sidebar.header("Filtros")
     time_filter = st.sidebar.selectbox(
-        "Período",
-        ["Todos os dados", "Últimos 7 dias", "Últimos 30 dias", "Últimos 90 dias"]
-    )    
-    days_map = {
-        "Últimos 7 dias": 7,
-        "Últimos 30 dias": 30,
-        "Últimos 90 dias": 90
-    }
+        "Período", available_periods
+    )
     if time_filter != "Todos os dados":
         df_sales = create_time_filtered_df(df_sales, days_map[time_filter])
     
@@ -51,44 +49,19 @@ def load_page_sales():
     if selected_store != "Todas":
         df_sales = df_sales[df_sales['Unidade'] == selected_store]
     
-    # Overview metrics
-    st.header("Visão Geral")
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        st.metric("Total de sales", len(df_sales))
-    with col2:
-        st.metric("Total de Unidades", df_sales['Unidade'].nunique())
-    with col3:
-        conversion_rate = (df_sales['Status'] == 'Convertido').mean() * 100
-        st.metric("Taxa de Conversão", f"{conversion_rate:.1f}%")
-    with col4:
-        avg_sales_per_day = len(df_sales) / df_sales['Dia'].nunique()
-        st.metric("Média de sales/Dia", f"{avg_sales_per_day:.1f}")
-    st.markdown("---")
-
     ########
+    # Header
+    header_sales(df_sales)
+
     # Tratativas especiais:
-    # Tratativa #1: Criando uma coluna para "DIA"
-    df_sales['Data venda'] = pd.to_datetime(df_sales['Data venda']) # Aqui vamos dizer para o código que este campo é uma data (pd.to_datetime)
-    df_sales['Dia'] = df_sales['Data venda'].dt.day # Isolando o dia do campo "Data venda"
-
-    # Tratativa #2: Filtrando apenas vendas Finalizadas
     df_sales = df_sales.loc[df_sales['Status'] == 'Finalizado']
-
-    # Tratativa #3: Excluindo Consultor "BKO VENDAS"
     df_sales = df_sales.loc[df_sales['Consultor'] != 'BKO VENDAS']
 
-    # Groupby com as vendas por dia
-    # Group by Vendas por Dia
-    groupby_vendas_por_dia = (
-        df_sales
-        .groupby('Dia')
-        .agg({'Valor líquido': 'sum'})
-        .reset_index()
-    )
+    #####
+    # Div 1: Vendas por Dia
+    # TODO: Adicionar uma linha de tendência no gráfico
+    groupby_vendas_por_dia = groupby_sales_por_dia(df_sales)
 
-    # Gráfico barra vendas_por_dia
     grafico_vendas_por_dia = px.bar(
         groupby_vendas_por_dia,
         x='Dia',
@@ -99,73 +72,52 @@ def load_page_sales():
     st.plotly_chart(grafico_vendas_por_dia)
 
     #####
-    # Tarefa de colocar linha de tendência no gráfico
-    ####
+    # Div 2: Vendas por Loja
 
-    # Group by Venda / Dia / Loja
-    # colunas: 'Unidade', 'Valor líquido', 'Dia'
-    groupby_vendas_dia_loja = (
-        df_sales
-        .groupby(['Dia', 'Unidade'])
-        .agg({'Valor líquido': 'sum'})
-        .reset_index()
-        .fillna(0)
-    )
-
-    # Pivotando os dados para exibir Dia x Unidade
+    groupby_vendas_dia_loja = groupby_sales_por_unidade(df_sales)
+    
     pivot_vendas_dia_loja = groupby_vendas_dia_loja.pivot(
                             index='Dia',
                             columns='Unidade',
                             values='Valor líquido')
-
     pivot_vendas_dia_loja = pivot_vendas_dia_loja.fillna(0)
-
-    st.write("Venda Diária Detalhada")
+    st.markdown("###### Venda Diária Detalhada")
     st.dataframe(pivot_vendas_dia_loja)
 
+    #####
+    # Div 3: Vendas por Profissão e Consultor
 
-    # Dividindo a tela em 2 colunas:
     col1, col2 = st.columns(2)
 
     with col1:
-        # Groupby por profissões
-        groupby_vendas_por_profissao = (
-            df_sales
-            .groupby('Profissão cliente')
-            .agg({'Valor líquido': 'sum'})
-            .reset_index()
-            .sort_values('Valor líquido', ascending=False)
-            .head(10) # top 10
-        )
+        groupby_vendas_por_profissao = groupby_sales_por_profissao(df_sales)
 
-        # Gráfico de Pizza
         grafico_vendas_por_profissao_top10 = px.pie(
                 groupby_vendas_por_profissao,
                 names='Profissão cliente',
                 values='Valor líquido', # : 'sum'
-                title='Valor comprado por Profissão',
+                title='Valor comprado por Profissão - Top10',
                 labels={'Valor líquido': 'Valor Comprado', 'Profissão cliente': 'Profissão'},
             )
 
         st.plotly_chart(grafico_vendas_por_profissao_top10)
 
     with col2:
-        # Groupby por Vendedoras
-        groupby_vendas_por_vendedoras = (
-            df_sales
-            .groupby('Consultor')
-            .agg({'Valor líquido': 'sum'})
-            .reset_index()
-            .sort_values('Valor líquido', ascending=False)
-            .head(10) # top 10
-        )
+        groupby_vendas_por_vendedoras = groupby_sales_por_vendedoras(df_sales)
 
-        # Gráfico barra vendas_por_dia
         grafico_vendas_por_consultor = px.bar(
             groupby_vendas_por_vendedoras,
             x='Consultor',
             y='Valor líquido',
             title='Venda Por Consultora',
+            labels={'Valor líquido': 'Valor Líquido', 'Consultor': 'Consultora de Vendas'},
+        )
+
+        grafico_vendas_por_consultor = px.bar(
+            groupby_vendas_por_vendedoras,
+            x='Consultor',
+            y='Valor líquido',
+            title='Venda Por Consultora - Top10',
             labels={'Valor líquido': 'Valor Líquido', 'Consultor': 'Consultora de Vendas'},
         )
         st.plotly_chart(grafico_vendas_por_consultor)

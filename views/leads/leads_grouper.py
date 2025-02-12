@@ -1,3 +1,5 @@
+import pandas as pd
+
 def groupby_leads_por_dia(df_leads):
     """Group leads by day."""
     return (
@@ -5,7 +7,7 @@ def groupby_leads_por_dia(df_leads):
         .groupby('Dia')                 
         .agg({'ID do lead': 'nunique'})  
         .reset_index()                   
-    )
+)
 
 def groupby_leads_por_unidade(df_leads):
     """Group leads by unit."""
