@@ -40,3 +40,23 @@ def transform_date_from_sales(df):
     df['Mês'] = df['Data venda'].dt.month
     df['Dia da Semana'] = df['Data venda'].dt.day_name()
     return df
+
+def transform_date_from_appointments(df):
+    """
+    Treat data as a date and extract day, month and year.
+    
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        DataFrame with a 'create_date' column.
+    
+    Returns
+    -------
+    pandas.DataFrame
+        DataFrame with 'Dia', 'Mês' and 'Dia da Semana' columns.
+    """
+    df['Data'] = pd.to_datetime(df['Data'], format='%d/%m/%Y')
+    df['Dia'] = df['Data'].dt.day
+    df['Mês'] = df['Data'].dt.month
+    df['Dia da Semana'] = df['Data'].dt.day_name()
+    return df
