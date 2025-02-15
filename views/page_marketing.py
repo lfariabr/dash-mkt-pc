@@ -47,33 +47,54 @@ def create_time_filtered_df(df, days=None):
 def load_page_marketing():
     """Main function to display sales data."""
 
-    st.title("📊 11 - Marketing ")
-    df_sales, df_leads, df_appointments = load_data()
-
-    st.sidebar.header("Filtros")
-    time_filter = st.sidebar.selectbox(
-        "Período", available_periods
-    )
-    if time_filter != "Todos os dados":
-        df_sales = create_time_filtered_df(df_sales, days_map[time_filter])
+    st.title("📊 0 - Marketing ")
     
-    unidades = ["Todas"] + sorted(df_sales['Unidade'].unique().tolist())
-    selected_store = st.sidebar.selectbox("Unidade", unidades)
-    
-    if selected_store != "Todas":
-        df_sales = df_sales[df_sales['Unidade'] == selected_store]
-    
-    ########
-    # Header
-    # header_sales(df_sales)
+    # Original Code
+    # df_sales, df_leads, df_appointments = load_data()
 
-    # Tratativas especiais:
-    # df_sales = df_sales.loc[df_sales['Status'] == 'Finalizado']
-    # df_sales = df_sales.loc[df_sales['Consultor'] != 'BKO VENDAS']
+    #################
+    # Tests are here
+    #################
 
-    #####
-    # Funil de Vendas:
-    # Em uma única tabela, queremos ter uma coluna para cada Mês do período disponível da base de Leads
+    # df_sales = upload_sales_file()
+    col1, col2, col3 = st.columns(3)
+    
+    # df_leads = upload_leads_file()
+    with col1:
+        upload_leads_file = st.file_uploader("Upload Leads File", type=["xlsx"])
+        if upload_leads_file is not None:
+            df_leads = pd.read_excel(upload_leads_file)
+            df_leads = df_leads.loc[~df_leads['Unidade'].isin(stores_to_remove)]
+            df_leads = transform_date_from_leads(df_leads)
+            df_leads = process_lead_categories(df_leads)
+            # df_leads = check_appointments_status(df_leads, df_appointments_comparecimentos, df_appointments_agendamentos)
+
+    # df_appointments = upload_appointments_file()
+    with col2:
+        upload_appointments_file = st.file_uploader("Upload Appointments File", type=["xlsx"])
+        if upload_appointments_file is not None:
+            df_appointments = pd.read_excel(upload_appointments_file)
+            df_appointments = df_appointments.loc[~df_appointments['Unidade do agendamento'].isin(stores_to_remove)]
+            df_appointments = transform_date_from_appointments(df_appointments)
+            
+            # Clean phone numbers
+            df_appointments['Telefone'] = df_appointments['Telefone'].fillna('Cliente sem telefone')
+            df_appointments['Telefone'] = df_appointments['Telefone'].astype(str)
+            df_appointments['Telefones Limpos'] = df_appointments['Telefone'].apply(clean_telephone)
+            
+            # Filter appointments for comparecimentos and agendamentos
+            df_appointments_comparecimentos = df_appointments[df_appointments['Status'].isin(status_comparecimentos_dash)]
+            df_appointments_comparecimentos = df_appointments_comparecimentos[df_appointments_comparecimentos['Procedimento'].isin(aesthetic_procedures_aval)]
+            
+            df_appointments_agendamentos = df_appointments[df_appointments['Status'].isin(status_agendamentos_dash)]
+            df_appointments_agendamentos = df_appointments_agendamentos[df_appointments_agendamentos['Procedimento'].isin(aesthetic_procedures_aval)]
+
+    with col3:
+        upload_sales_file = st.file_uploader("Upload Sales File", type=["xlsx"])
+        if upload_sales_file is not None:
+            df_sales = pd.read_excel(upload_sales_file)
+            df_sales = df_sales.loc[~df_sales['Unidade'].isin(stores_to_remove)]
+            df_sales = transform_date_from_sales(df_sales)
     
     ### df_leads
     # Leads por Mês
@@ -84,154 +105,103 @@ def load_page_marketing():
     ##### df_leads
     ##############
     st.markdown("---")
-    st.header("Leads")
-    col1, col2 = st.columns(2)
+    st.header("Leads por Fonte")
+    col1, col2, col3 = st.columns(3)
     with col1:
+        df_leads_google = df_leads[df_leads['Fonte'] == 'Google Pesquisa']
+        df_leads_google = process_lead_categories(df_leads_google)
 
-        groupby_leads_por_mes = df_leads.groupby(['Mês', 'Unidade']).size().reset_index(name='ID do lead')
+        groupby_leads_por_mes = df_leads_google.groupby(['Mês']).size().reset_index(name='ID do lead')
+        st.write("Leads Google Pesquisa")
         st.dataframe(groupby_leads_por_mes)
         
     with col2:
-        fig_month = px.line(
-                groupby_leads_por_mes,
-                x='Mês',
-                y='ID do lead',
-                title='Leads por Mês',
-                labels={'ID do lead': 'Quantidade de Leads', 'Mês': 'Mês'},
-                markers=True
-            )
-        st.plotly_chart(fig_month, use_container_width=True)
+        df_leads_facebook = df_leads[df_leads['Fonte'] == 'Facebook Leads']
+        df_leads_facebook = process_lead_categories(df_leads_facebook)
 
-    ###############
-    ###### df_appointments
-    ###############
-    st.markdown("---")
-    st.header("Agendamentos")
-    col3, col4 = st.columns(2)
-
+        groupby_leads_por_mes = df_leads_facebook.groupby(['Mês']).size().reset_index(name='ID do lead')
+        st.write("Leads Facebook Leads")
+        st.dataframe(groupby_leads_por_mes)
+    
     with col3:
-        
+        df_leads_google_and_facebook = df_leads[df_leads['Fonte'].isin(['Google Pesquisa', 'Facebook Leads'])]
+        df_leads_google_and_facebook = process_lead_categories(df_leads_google_and_facebook)
 
-        # df_appointments
-        # Agendamentos por mês
-        # No final, apenas Contagem Unique ID agendamento com os
-        
-        df_appointments_agendamentos = df_appointments[df_appointments['Status'].isin(status_agendamentos_dash)]
-        df_appointments_agendamentos = df_appointments_agendamentos[df_appointments_agendamentos['Procedimento'].isin(aesthetic_procedures_aval)]
-
-        groupby_appointments_por_mes = df_appointments_agendamentos.groupby(['Mês', 'Unidade do agendamento']).agg({'ID agendamento': 'nunique'}).reset_index()
-        st.dataframe(groupby_appointments_por_mes)
-    
-    with col4:
-        fig_month = px.line(
-                groupby_appointments_por_mes,
-                x='Mês',
-                y='ID agendamento',
-                title='Agendamentos por Mês',
-                labels={'ID agendamento': 'Quantidade de Agendamentos', 'Mês': 'Mês'},
-                markers=True
-            )
-        st.plotly_chart(fig_month, use_container_width=True)
-
-    st.markdown("---")
-    st.header("Comparecimentos")
-    col5, col6 = st.columns(2)
-    
-    with col5:
-        df_appointments_comparecimentos = df_appointments[df_appointments['Status'].isin(status_comparecimentos_dash)]
-        df_appointments_comparecimentos = df_appointments_comparecimentos[df_appointments_comparecimentos['Procedimento'].isin(aesthetic_procedures_aval)]
-
-        groupby_appointments_por_mes = df_appointments_comparecimentos.groupby(['Mês', 'Unidade do agendamento']).agg({'ID agendamento': 'nunique'}).reset_index()
-        st.dataframe(groupby_appointments_por_mes)
-    
-    with col6:
-        fig_month = px.line(
-                groupby_appointments_por_mes,
-                x='Mês',
-                y='ID agendamento',
-                title='Comparecimentos por Mês',
-                labels={'ID agendamento': 'Quantidade de Comparecimentos', 'Mês': 'Mês'},
-                markers=True
-            )
-        st.plotly_chart(fig_month, use_container_width=True)
-
-    ###############
-    ###### df_sales
-    ###############
-    st.markdown("---")
-    st.header("Pedidos/Vendas")
-    df_sales = df_sales.loc[df_sales['Status'] == 'Finalizado']
-    df_sales = df_sales.loc[df_sales['Consultor'] != 'BKO VENDAS']
-    df_sales = df_sales.loc[df_sales['Valor líquido'] > 0]
-    
-    col7, col8 = st.columns(2)
-    
-    with col7:
-        groupby_orcamentos_por_mes = df_sales.groupby(['Mês', 'Unidade']).agg({'ID orçamento': 'nunique', 'Valor líquido': 'sum'}).reset_index()
-        st.dataframe(groupby_orcamentos_por_mes)
-    
-    with col8:
-        fig_month = px.line(
-                groupby_orcamentos_por_mes,
-                x='Mês',
-                y=['ID orçamento', 'Valor líquido'],
-                title='Orcamentos por Mês',
-                labels={'ID orçamento': 'Quantidade de Orcamentos', 'Valor líquido': 'Valor Liquido', 'Mês': 'Mês'},
-                markers=True
-            )
-        st.plotly_chart(fig_month, use_container_width=True)
+        groupby_leads_por_mes = df_leads_google_and_facebook.groupby(['Mês']).size().reset_index(name='ID do lead')
+        st.write("Leads Google e Facebook Leads")
+        st.dataframe(groupby_leads_por_mes)
 
     ###############
     ###### df_marketing_data
     ###############
     
-    # Div groupby Google
-    ### Dados Iniciais
-    df_leads_cleaned_columns = ['ID do lead', 'Nome do lead', 'Email do lead', 'Telefone do lead', 
+    # # Div groupby Google
+    df_leads_cleaned_columns = ['ID do lead', 'Nome do lead', 'Email do lead', 'Telefone do lead',
                                 'Mensagem', 'Unidade', 'Fonte', 'Dia da entrada',
                                 'Status', 'Source', 'Medium', 'Term', 'Content', 'Campaign', 'Mês']
+    df_leads_cleaned = df_leads_google_and_facebook[df_leads_cleaned_columns]
+
+    # Cleaning lead telephone
+    df_leads_cleaned['Telefone do lead'] = df_leads_cleaned['Telefone do lead'].astype(str)
+    df_leads_cleaned['Telefone do lead'] = df_leads_cleaned['Telefone do lead'].apply(clean_telephone)
+
+    df_appointments_cleaned_columns = ['ID agendamento', 'ID cliente', 'Unidade do agendamento', 'Procedimento', 'Status', 'Data', 'Dia', 'Mês', 'Dia da Semana']
+    df_appointments_cleaned = df_appointments[df_appointments_cleaned_columns]
+
+    df_sales_cleaned_columns = ['ID orçamento', 'Unidade', 'Data venda', 'Mês', 'Dia', 'Dia da Semana', 'ID cliente', 'Valor líquido', 'Procedimento', 'Data nascimento cliente', 'Profissão cliente']
+    df_sales_cleaned = df_sales[df_sales_cleaned_columns]
     
-    df_leads_cleaned = df_leads[df_leads_cleaned_columns]
-
-    st.write("motherfucking dataframe")
-
-    # Adding Category function to dataframes
+    st.markdown("---")
+    st.write("Leads que vamos conferir:")
     df_leads_cleaned = process_lead_categories(df_leads_cleaned)
+    st.dataframe(df_leads_cleaned.sample(n=5, random_state=123))
 
-    df_appointments['Telefones Limpos'] = df_appointments['Telefone'].apply(clean_telephone)
+    st.markdown("---")
+    st.write("Agendamentos que vamos conferir:")
+    st.dataframe(df_appointments_cleaned.sample(n=5, random_state=123))
 
-    # Check appointment status for all leads at once
-    df_leads_cleaned = check_appointments_status(
-        df_leads_cleaned,
-        df_appointments_comparecimentos,  # Already filtered for 'Atendido' status and aesthetic procedures
-        df_appointments_agendamentos      # Already filtered for other statuses and aesthetic procedures
-    )
-
-    st.dataframe(df_leads_cleaned)
+    st.markdown("---")
+    st.write("Vendas que vamos conferir:")
+    st.dataframe(df_sales_cleaned.sample(n=5, random_state=123))
     
     st.markdown("---")
-    st.header("Google")
-    df_leads_google = df_leads_cleaned[df_leads_cleaned['Fonte'] == 'Google Pesquisa']
-    df_leads_google = process_lead_categories(df_leads_google)
+    st.write("""
+                Está tudo certo com os dados? \n
+                Se sim, clique no botão abaixo para a magia acontecer!
+            """)
+    if st.button("Play", icon="🔥"):
+        # Check appointment status for all leads at once
+        df_leads_cleaned = check_appointments_status(
+            df_leads_cleaned,
+            df_appointments_comparecimentos,  # Already filtered for 'Atendido' status and aesthetic procedures
+            df_appointments_agendamentos      # Already filtered for other statuses and aesthetic procedures
+        )
+
+        st.dataframe(df_leads_cleaned)
     
-    df_leads_google_by_month = df_leads_google.groupby(['Mês']).agg({'ID do lead': 'nunique'}).reset_index()
-    df_leads_google_by_month_and_store = df_leads_google.groupby(['Mês', 'Unidade']).agg({'ID do lead': 'nunique'}).reset_index()
-    st.dataframe(df_leads_google_by_month)
-
-    # Div groupby Instagram
-    st.markdown("---")
-    st.header("Facebook Leads")
-    df_leads_facebook_leads = df_leads_cleaned[df_leads_cleaned['Fonte'] == 'Facebook Leads']
-    df_leads_facebook_leads = process_lead_categories(df_leads_facebook_leads)
+    # st.markdown("---")
+    # st.header("Google")
+    # df_leads_google = df_leads_cleaned[df_leads_cleaned['Fonte'] == 'Google Pesquisa']
+    # df_leads_google = process_lead_categories(df_leads_google)
     
-    df_leads_facebook_leads_by_month = df_leads_facebook_leads.groupby(['Mês']).agg({'ID do lead': 'nunique'}).reset_index()
-    df_leads_facebook_leads_by_month_and_store = df_leads_facebook_leads.groupby(['Mês', 'Unidade']).agg({'ID do lead': 'nunique'}).reset_index()
-    st.dataframe(df_leads_facebook_leads_by_month)
+    # df_leads_google_by_month = df_leads_google.groupby(['Mês']).agg({'ID do lead': 'nunique'}).reset_index()
+    # df_leads_google_by_month_and_store = df_leads_google.groupby(['Mês', 'Unidade']).agg({'ID do lead': 'nunique'}).reset_index()
+    # st.dataframe(df_leads_google_by_month)
 
-    # Check if leads_facebook and leads_google are in
+    # # Div groupby Instagram
+    # st.markdown("---")
+    # st.header("Facebook Leads")
+    # df_leads_facebook_leads = df_leads_cleaned[df_leads_cleaned['Fonte'] == 'Facebook Leads']
+    # df_leads_facebook_leads = process_lead_categories(df_leads_facebook_leads)
+    
+    # df_leads_facebook_leads_by_month = df_leads_facebook_leads.groupby(['Mês']).agg({'ID do lead': 'nunique'}).reset_index()
+    # df_leads_facebook_leads_by_month_and_store = df_leads_facebook_leads.groupby(['Mês', 'Unidade']).agg({'ID do lead': 'nunique'}).reset_index()
+    # st.dataframe(df_leads_facebook_leads_by_month)
 
-    st.dataframe(df_leads_facebook_leads)
-    st.dataframe(df_leads_google)
+    # # Check if leads_facebook and leads_google are in
+
+    # st.dataframe(df_leads_facebook_leads)
+    # st.dataframe(df_leads_google)
 
 
 

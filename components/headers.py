@@ -32,3 +32,18 @@ def header_sales(df_sales):
         st.metric("Média de sales/Dia", f"{avg_sales_per_day:.1f}")
     st.markdown("---")
 
+def header_appointments(df_appointments):
+    st.header("Visão Geral")
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("Total de Agendamentos", len(df_appointments))
+    with col2:
+        st.metric("Total de Unidades", df_appointments['Unidade do agendamento'].nunique())
+    with col3:
+        total_days_count = df_appointments['Data'].nunique()
+        st.metric("Dias Úteis", total_days_count)
+    with col4:
+        avg_appointments_per_day = len(df_appointments) / df_appointments['Data'].nunique()
+        st.metric("Média de Agendamentos/Dia", f"{avg_appointments_per_day:.1f}")
+    st.markdown("---")
