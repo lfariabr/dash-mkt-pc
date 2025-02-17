@@ -11,10 +11,11 @@ from views.leads.lead_category import process_lead_categories
 from views.marketing.checker import check_appointments_status
 from helpers.cleaner import clean_telephone
 from data.procedures import aesthetic_procedures_aval
-from data.appointment_status import status_agendamentos_dash, status_comparecimentos_dash
+from data.appointment_status import status_agendamentos_marketing, status_comparecimentos_marketing
 from helpers.date import (transform_date_from_sales,
                          transform_date_from_leads,
                          transform_date_from_appointments)
+from views.marketing.checker import check_if_lead_has_other_status, check_if_lead_has_atendido_status
 
 def load_data():
     """Load and preprocess sales data."""
@@ -84,10 +85,10 @@ def load_page_marketing():
             df_appointments['Telefones Limpos'] = df_appointments['Telefone'].apply(clean_telephone)
             
             # Filter appointments for comparecimentos and agendamentos
-            df_appointments_comparecimentos = df_appointments[df_appointments['Status'].isin(status_comparecimentos_dash)]
+            df_appointments_comparecimentos = df_appointments[df_appointments['Status'].isin(status_comparecimentos_marketing)]
             df_appointments_comparecimentos = df_appointments_comparecimentos[df_appointments_comparecimentos['Procedimento'].isin(aesthetic_procedures_aval)]
             
-            df_appointments_agendamentos = df_appointments[df_appointments['Status'].isin(status_agendamentos_dash)]
+            df_appointments_agendamentos = df_appointments[df_appointments['Status'].isin(status_agendamentos_marketing)]
             df_appointments_agendamentos = df_appointments_agendamentos[df_appointments_agendamentos['Procedimento'].isin(aesthetic_procedures_aval)]
 
     with col3:
@@ -114,6 +115,7 @@ def load_page_marketing():
         st.markdown("---")
         st.header("Leads por Fonte")
         col1, col2, col3 = st.columns(3)
+        
         with col1:
             df_leads_google = df_leads[df_leads['Fonte'] == 'Google Pesquisa']
             df_leads_google = process_lead_categories(df_leads_google)
@@ -177,15 +179,76 @@ def load_page_marketing():
                     Se sim, clique no botão abaixo para a magia acontecer!
                 """)
         if st.button("Play", icon="🔥"):
-            # Check appointment status for all leads at once
-            df_leads_cleaned = check_appointments_status(
+
+            # First check: All leads for 'Atendido' status
+            df_leads_cleaned = check_if_lead_has_atendido_status(
                 df_leads_cleaned,
-                df_appointments_comparecimentos,  # Already filtered for 'Atendido' status and aesthetic procedures
-                df_appointments_agendamentos      # Already filtered for other statuses and aesthetic procedures
+                df_appointments_comparecimentos
             )
+            
+            # Display leads with 'Atendido' status
+            st.write("### 1. Leads Atendidos:")
+            df_atendidos = df_leads_cleaned[df_leads_cleaned['comparecimento'] == True].copy()
+            st.dataframe(df_atendidos)
+            
+            # Get leads that weren't 'Atendido' and check for other statuses
+            df_leads_nao_atendidos = df_leads_cleaned[df_leads_cleaned['comparecimento'].fillna('Não compareceu') == 'Não compareceu'].copy()
+            
+            df_leads_nao_atendidos = check_if_lead_has_other_status(
+                df_leads_nao_atendidos,
+                df_appointments_agendamentos
+            )
+            # First, update the non-attended leads in the original DataFrame
+            df_leads_cleaned = df_leads_cleaned[df_leads_cleaned['comparecimento'] == True].copy()
+            df_leads_cleaned = pd.concat([df_leads_cleaned, df_leads_nao_atendidos])
+
+            # Display leads with other statuses
+            st.write("### 2. Leads na Agenda, com outros status:")
+            df_outros_status = df_leads_cleaned[
+                (df_leads_cleaned['comparecimento'].fillna('Não compareceu') == 'Não compareceu') & 
+                ((df_leads_cleaned['agendamento_novo'] == True) | (df_leads_cleaned['comparecimento_novo'] == True))
+            ].copy()
+            
+            st.dataframe(df_outros_status)
+            
+            # Display leads not found in any check
+            st.write("### 3. Leads não encontrados na Agenda:")
+            df_nao_encontrados = df_leads_cleaned[
+                (df_leads_cleaned['comparecimento'].fillna('Não compareceu') == 'Não compareceu') & 
+                (df_leads_cleaned['agendamento_novo'].isna()) & 
+                (df_leads_cleaned['comparecimento_novo'].isna())
+            ].copy()
+            st.dataframe(df_nao_encontrados)
+            
+            with st.container(border=True):
+                # Display summary statistics
+                total_leads = len(df_leads_cleaned)
+                st.write("\n### Resumo da Análise:")
+                st.write(f"Total de Leads: {total_leads}")
+                st.write(f"✅ Atendidos: {len(df_atendidos)} ({(len(df_atendidos)/total_leads*100):.1f}%)")
+                st.write(f"📋 Com Outro Status: {len(df_outros_status)} ({(len(df_outros_status)/total_leads*100):.1f}%)")
+                st.write(f"❓ Não Encontrados: {len(df_nao_encontrados)} ({(len(df_nao_encontrados)/total_leads*100):.1f}%)")
+                
+            # Showing off FINAL dataframe with all checks
+            st.write("### Dataframe Final dos Leads:")
+
+            # Fill column "Status" NA with "Sem Status"
+            df_leads_cleaned['status'] = df_leads_cleaned['status'].fillna('Sem Status')
+
+            # where status_novo is not null, fill status with status_novo
+            df_leads_cleaned['status'] = df_leads_cleaned.apply(lambda row: row['status_novo'] if pd.notna(row['status_novo']) else row['status'], axis=1)
+            df_leads_cleaned['procedimento'] = df_leads_cleaned.apply(lambda row: row['procedimento_novo'] if pd.notna(row['procedimento_novo']) else row['procedimento'], axis=1)
+            df_leads_cleaned['unidade'] = df_leads_cleaned.apply(lambda row: row['unidade_novo'] if pd.notna(row['unidade_novo']) else row['unidade'], axis=1)
+            df_leads_cleaned['data_agenda'] = df_leads_cleaned.apply(lambda row: row['data_agenda_novo'] if pd.notna(row['data_agenda_novo']) else row['data_agenda'], axis=1)
 
             st.dataframe(df_leads_cleaned)
-        
+
+            # TODO
+            # Atendido = matched
+            # Falta = matched
+            # Cancelado = matched
+            # Agendado = matched
+
         # st.markdown("---")
         # st.header("Google")
         # df_leads_google = df_leads_cleaned[df_leads_cleaned['Fonte'] == 'Google Pesquisa']
@@ -211,10 +274,3 @@ def load_page_marketing():
         # st.dataframe(df_leads_google)
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
-
-
-# Valor das vendas dentro do mês
-# Ticket médio do cliente no mês
-# Valor das vendas no período completo selecionado
-# Ticket médio do cliente no período completo selecionado
-# Quantidade orcamentos que o cliente tem
