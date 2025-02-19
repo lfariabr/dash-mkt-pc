@@ -1,8 +1,8 @@
 import streamlit as st
-from views.page_lead import load_page_leads
-from views.page_sales import load_page_sales
-from views.page_marketing import load_page_marketing
-from views.page_appointments import load_page_appointments
+from views.lead_view import load_page_leads
+from views.appointments_view import load_page_appointments
+from views.sales_view import load_page_sales
+from views.marketing_view import load_page_marketing
 
 st.set_page_config(
     page_title="Dash Pró-Corpo",

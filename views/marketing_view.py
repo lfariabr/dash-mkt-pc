@@ -6,31 +6,25 @@ from datetime import datetime, timedelta
 
 # Support functions
 from data.stores import stores_to_remove
-from data.date_intervals import available_periods, days_map
-from views.leads.lead_category import process_lead_categories
-from views.marketing.checker import check_appointments_status
-from helpers.cleaner import clean_telephone
 from data.procedures import aesthetic_procedures_aval
 from data.appointment_status import status_agendamentos_marketing, status_comparecimentos_marketing
-from helpers.date import (transform_date_from_sales,
-                         transform_date_from_leads,
-                         transform_date_from_appointments)
-from views.marketing.checker import check_if_lead_has_other_status, check_if_lead_has_atendido_status
-from views.leads.lead_columns import lead_clean_columns
 from views.appointments.appointment_columns import appointments_clean_columns
 from views.sales.sale_columns import sales_clean_columns
 from views.marketing.marketing_columns import marketing_clean_columns
-
+from views.leads.lead_columns import lead_clean_columns
+from views.leads.lead_category import process_lead_categories
+from helpers.cleaner import clean_telephone
+from helpers.date import (transform_date_from_sales,
+                         transform_date_from_leads,
+                         transform_date_from_appointments)
+from views.marketing.apt_checker import check_if_lead_has_other_status, check_if_lead_has_atendido_status
+from views.marketing.sales_checker import check_if_lead_has_purchased
 
 def load_data():
     """Load and preprocess sales data."""
-    sales = 'db/sales.xlsx'
     leads = 'db/leads.xlsx'
     appointments = 'db/appointments.xlsx'
-
-    df_sales = pd.read_excel(sales)
-    df_sales = df_sales.loc[~df_sales['Unidade'].isin(stores_to_remove)]
-    df_sales = transform_date_from_sales(df_sales)
+    sales = 'db/sales.xlsx'
     
     df_leads = pd.read_excel(leads)
     df_leads = df_leads.loc[~df_leads['Unidade'].isin(stores_to_remove)]
@@ -40,8 +34,11 @@ def load_data():
     df_appointments = df_appointments.loc[~df_appointments['Unidade do agendamento'].isin(stores_to_remove)]
     df_appointments = transform_date_from_appointments(df_appointments)
 
-    return df_sales, df_leads, df_appointments
-
+    df_sales = pd.read_excel(sales)
+    df_sales = df_sales.loc[~df_sales['Unidade'].isin(stores_to_remove)]
+    df_sales = transform_date_from_sales(df_sales)
+    
+    return df_leads, df_appointments, df_sales
 
 def create_time_filtered_df(df, days=None):
     """Create a time-filtered dataframe."""
@@ -88,8 +85,21 @@ def load_page_marketing():
     with col3:
         upload_sales_file = st.file_uploader("Upload Sales File", type=["xlsx"])
         if upload_sales_file is not None:
+
+            
             df_sales = pd.read_excel(upload_sales_file)
             df_sales = df_sales.loc[~df_sales['Unidade'].isin(stores_to_remove)]
+            df_sales = df_sales[df_sales['Status'] == 'Finalizado']
+
+            df_sales['Valor líquido'] = pd.to_numeric(df_sales['Valor líquido'].astype(str).str.replace(',', '.'), errors='coerce')
+            df_sales['Telefone(s) do cliente'] = df_sales['Telefone(s) do cliente'].fillna('Cliente sem telefone')
+            df_sales['Email do cliente'] = df_sales['Email do cliente'].fillna('Cliente sem e-mail')
+            df_sales['Telefone(s) do cliente'] = df_sales['Telefone(s) do cliente'].astype(str)
+            df_sales['Telefones Limpos'] = df_sales['Telefone(s) do cliente'].apply(lambda x: [clean_telephone(num) for num in str(x).split('/')])
+            colunas_reduzido =  ['Telefones Limpos', 'Telefone(s) do cliente', 'ID orçamento', 'Data venda',
+                    'Unidade', 'Valor líquido', 'ID cliente', 'Procedimento', 'Data nascimento cliente', 'Profissão cliente']
+            df_sales = df_sales[colunas_reduzido]
+
             df_sales = transform_date_from_sales(df_sales)
     
     if df_leads is None or df_appointments is None or df_sales is None:
@@ -209,9 +219,9 @@ def load_page_marketing():
                 total_leads = len(df_leads_cleaned)
                 
                 with col1:
-                    st.write("\n### Resumo da Análise:")
+                    st.write("\n### Resumo da Análise - Leads x Agenda:")
                     st.write(
-                        f"🧲 | {total_leads} -> Total de Leads")
+                        f"👀 | {total_leads} -> Total de Leads")
                     st.write(
                         f"✅ | {len(df_atendidos)} ({(len(df_atendidos)/total_leads*100):.1f}%) -> Atendidos")
                
@@ -241,9 +251,29 @@ def load_page_marketing():
 
             st.markdown("---")
 
+            st.write("### Leads x Agenda x Vendas Final:")
+            df_leads_with_purchases = check_if_lead_has_purchased(df_leads_cleaned_final, df_sales_cleaned)
+            df_leads_with_purchases = df_leads_with_purchases.fillna('')
+            
+            # Creating column "comprou"
+            df_leads_with_purchases['comprou'] = df_leads_with_purchases['Unidade_y'] != 'Não comprou'
+            df_leads_with_purchases['Valor líquido'] = pd.to_numeric(df_sales['Valor líquido'].astype(str).str.replace(',', '.'), errors='coerce')
+            st.dataframe(df_leads_with_purchases)
+            
+            # COOL STATISTICS:
+            total_leads_atendidos = df_leads_with_purchases[df_leads_with_purchases['status'] == 'Atendido']['ID do lead'].nunique()
+            total_leads_compraram = df_leads_with_purchases[df_leads_with_purchases['comprou'] == True]['ID do lead'].nunique()
+            total_comprado = df_leads_with_purchases[df_leads_with_purchases['comprou'] == True]['Valor líquido'].sum()
+
+            with st.container(border=True):
+                st.write("### Resumo da Análise - Leads x Agenda x Vendas:")
+                st.write(f"📅 | {total_leads_atendidos} -> Total de leads atendidos")
+                st.write(f"🎉 | {total_leads_compraram} -> Total de leads que compraram")
+                st.write(f"💰 | {total_comprado} -> Total comprado pelos leads")
+
             st.write("""
                     Está tudo certo com os dados? \n
-                    Se sim, clique no botão abaixo para a magia acontecer!
+                    Se sim, clique no botão abaixo para salvar os Dados!
                 """)
             if st.button("Salvar no Banco de Dados", icon="💾"):
                     st.balloons()
