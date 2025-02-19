@@ -21,7 +21,7 @@ from views.marketing.apt_checker import check_if_lead_has_other_status, check_if
 from views.marketing.sales_checker import check_if_lead_has_purchased
 
 def load_data():
-    """Load and preprocess sales data."""
+    """Load and preprocess sales data. test"""
     leads = 'db/leads.xlsx'
     appointments = 'db/appointments.xlsx'
     sales = 'db/sales.xlsx'
