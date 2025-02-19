@@ -16,6 +16,11 @@ from helpers.date import (transform_date_from_sales,
                          transform_date_from_leads,
                          transform_date_from_appointments)
 from views.marketing.checker import check_if_lead_has_other_status, check_if_lead_has_atendido_status
+from views.leads.lead_columns import lead_clean_columns
+from views.appointments.appointment_columns import appointments_clean_columns
+from views.sales.sale_columns import sales_clean_columns
+from views.marketing.marketing_columns import marketing_clean_columns
+
 
 def load_data():
     """Load and preprocess sales data."""
@@ -49,19 +54,10 @@ def load_page_marketing():
     """Main function to display sales data."""
 
     st.title("📊 0 - Marketing ")
-    
-    # Original Code
-    # df_sales, df_leads, df_appointments = load_data()
 
-    #################
-    # Tests are here
-    #################
     df_leads, df_appointments, df_sales = None, None, None  # Initialize variables
+    col1, col2, col3 = st.columns(3)    
 
-    # df_sales = upload_sales_file()
-    col1, col2, col3 = st.columns(3)
-    
-    # df_leads = upload_leads_file()
     with col1:
         upload_leads_file = st.file_uploader("Upload Leads File", type=["xlsx"])
         if upload_leads_file is not None:
@@ -69,9 +65,7 @@ def load_page_marketing():
             df_leads = df_leads.loc[~df_leads['Unidade'].isin(stores_to_remove)]
             df_leads = transform_date_from_leads(df_leads)
             df_leads = process_lead_categories(df_leads)
-            # df_leads = check_appointments_status(df_leads, df_appointments_comparecimentos, df_appointments_agendamentos)
     
-    # df_appointments = upload_appointments_file()
     with col2:
         upload_appointments_file = st.file_uploader("Upload Appointments File", type=["xlsx"])
         if upload_appointments_file is not None:
@@ -98,12 +92,6 @@ def load_page_marketing():
             df_sales = df_sales.loc[~df_sales['Unidade'].isin(stores_to_remove)]
             df_sales = transform_date_from_sales(df_sales)
     
-    ### df_leads
-    # Leads por Mês
-    # No funil, apenas Qtd de Leads por coluna mês
-    # ter também no df_leads fonte, unidade, mensagem, content, email, phone tratado, utm_source, utm_medium, utm_campaign
-
-    # Check if data is available before proceeding
     if df_leads is None or df_appointments is None or df_sales is None:
         st.warning("⚠️  Faça upload dos 3 arquivos para começar a análise!")
         return  # Stop execution until data is uploaded
@@ -111,67 +99,58 @@ def load_page_marketing():
     try:
         ##############
         ##### df_leads
-        ##############
-        st.markdown("---")
-        st.header("Leads por Fonte")
-        col1, col2, col3 = st.columns(3)
         
-        with col1:
-            df_leads_google = df_leads[df_leads['Fonte'] == 'Google Pesquisa']
-            df_leads_google = process_lead_categories(df_leads_google)
+        st.spinner("Carregando dados...") #TODO make this happen
+        
+        with st.expander("Dados Carregados... Clique para expandir 👇"):
+            st.header("Leads por Fonte")
+            col1, col2, col3 = st.columns(3)
+        
+            with col1:
+                df_leads_google = df_leads[df_leads['Fonte'] == 'Google Pesquisa']
+                df_leads_google = process_lead_categories(df_leads_google)
 
-            groupby_leads_por_mes = df_leads_google.groupby(['Mês']).size().reset_index(name='ID do lead')
-            st.write("Leads Google Pesquisa")
-            st.dataframe(groupby_leads_por_mes)
+                groupby_leads_por_mes = df_leads_google.groupby(['Mês']).size().reset_index(name='ID do lead')
+                st.write("Leads Google Pesquisa")
+                st.dataframe(groupby_leads_por_mes)
+                
+            with col2:
+                df_leads_facebook = df_leads[df_leads['Fonte'] == 'Facebook Leads']
+                df_leads_facebook = process_lead_categories(df_leads_facebook)
+
+                groupby_leads_por_mes = df_leads_facebook.groupby(['Mês']).size().reset_index(name='ID do lead')
+                st.write("Leads Facebook Leads")
+                st.dataframe(groupby_leads_por_mes)
             
-        with col2:
-            df_leads_facebook = df_leads[df_leads['Fonte'] == 'Facebook Leads']
-            df_leads_facebook = process_lead_categories(df_leads_facebook)
+            with col3:
+                df_leads_google_and_facebook = df_leads[df_leads['Fonte'].isin(['Google Pesquisa', 'Facebook Leads'])]
+                df_leads_google_and_facebook = process_lead_categories(df_leads_google_and_facebook)
 
-            groupby_leads_por_mes = df_leads_facebook.groupby(['Mês']).size().reset_index(name='ID do lead')
-            st.write("Leads Facebook Leads")
-            st.dataframe(groupby_leads_por_mes)
-        
-        with col3:
-            df_leads_google_and_facebook = df_leads[df_leads['Fonte'].isin(['Google Pesquisa', 'Facebook Leads'])]
-            df_leads_google_and_facebook = process_lead_categories(df_leads_google_and_facebook)
+                groupby_leads_por_mes = df_leads_google_and_facebook.groupby(['Mês']).size().reset_index(name='ID do lead')
+                st.write("Leads Google e Facebook Leads")
+                st.dataframe(groupby_leads_por_mes)
 
-            groupby_leads_por_mes = df_leads_google_and_facebook.groupby(['Mês']).size().reset_index(name='ID do lead')
-            st.write("Leads Google e Facebook Leads")
-            st.dataframe(groupby_leads_por_mes)
+            ###############
+            ###### df_marketing_data
+            # Cleaning data
+            df_leads_cleaned = df_leads_google_and_facebook[lead_clean_columns]
+            df_leads_cleaned['Telefone do lead'] = df_leads_cleaned['Telefone do lead'].astype(str)
+            df_leads_cleaned['Telefone do lead'] = df_leads_cleaned['Telefone do lead'].apply(clean_telephone)
+            df_appointments_cleaned = df_appointments[appointments_clean_columns]
+            df_sales_cleaned = df_sales[sales_clean_columns]
+            
+            st.markdown("---")
+            st.write("Leads que vamos conferir:")
+            df_leads_cleaned = process_lead_categories(df_leads_cleaned)
+            st.dataframe(df_leads_cleaned.sample(n=5, random_state=123))
 
-        ###############
-        ###### df_marketing_data
-        ###############
-        
-        # # Div groupby Google
-        df_leads_cleaned_columns = ['ID do lead', 'Nome do lead', 'Email do lead', 'Telefone do lead',
-                                    'Mensagem', 'Unidade', 'Fonte', 'Dia da entrada',
-                                    'Status', 'Source', 'Medium', 'Term', 'Content', 'Campaign', 'Mês']
-        df_leads_cleaned = df_leads_google_and_facebook[df_leads_cleaned_columns]
+            st.markdown("---")
+            st.write("Agendamentos que vamos conferir:")
+            st.dataframe(df_appointments_cleaned.sample(n=5, random_state=123))
 
-        # Cleaning lead telephone
-        df_leads_cleaned['Telefone do lead'] = df_leads_cleaned['Telefone do lead'].astype(str)
-        df_leads_cleaned['Telefone do lead'] = df_leads_cleaned['Telefone do lead'].apply(clean_telephone)
-
-        df_appointments_cleaned_columns = ['ID agendamento', 'ID cliente', 'Unidade do agendamento', 'Procedimento', 'Status', 'Data', 'Dia', 'Mês', 'Dia da Semana']
-        df_appointments_cleaned = df_appointments[df_appointments_cleaned_columns]
-
-        df_sales_cleaned_columns = ['ID orçamento', 'Unidade', 'Data venda', 'Mês', 'Dia', 'Dia da Semana', 'ID cliente', 'Valor líquido', 'Procedimento', 'Data nascimento cliente', 'Profissão cliente']
-        df_sales_cleaned = df_sales[df_sales_cleaned_columns]
-        
-        st.markdown("---")
-        st.write("Leads que vamos conferir:")
-        df_leads_cleaned = process_lead_categories(df_leads_cleaned)
-        st.dataframe(df_leads_cleaned.sample(n=5, random_state=123))
-
-        st.markdown("---")
-        st.write("Agendamentos que vamos conferir:")
-        st.dataframe(df_appointments_cleaned.sample(n=5, random_state=123))
-
-        st.markdown("---")
-        st.write("Vendas que vamos conferir:")
-        st.dataframe(df_sales_cleaned.sample(n=5, random_state=123))
+            st.markdown("---")
+            st.write("Vendas que vamos conferir:")
+            st.dataframe(df_sales_cleaned.sample(n=5, random_state=123))
         
         st.markdown("---")
         st.write("""
@@ -179,61 +158,75 @@ def load_page_marketing():
                     Se sim, clique no botão abaixo para a magia acontecer!
                 """)
         if st.button("Play", icon="🔥"):
+            progress_bar = st.progress(0)
+            st.spinner("A magia acontece...")
 
             # First check: All leads for 'Atendido' status
             df_leads_cleaned = check_if_lead_has_atendido_status(
                 df_leads_cleaned,
                 df_appointments_comparecimentos
             )
-            
-            # Display leads with 'Atendido' status
-            st.write("### 1. Leads Atendidos:")
-            df_atendidos = df_leads_cleaned[df_leads_cleaned['comparecimento'] == True].copy()
-            st.dataframe(df_atendidos)
-            
-            # Get leads that weren't 'Atendido' and check for other statuses
-            df_leads_nao_atendidos = df_leads_cleaned[df_leads_cleaned['comparecimento'].fillna('Não compareceu') == 'Não compareceu'].copy()
-            
-            df_leads_nao_atendidos = check_if_lead_has_other_status(
-                df_leads_nao_atendidos,
-                df_appointments_agendamentos
-            )
-            # First, update the non-attended leads in the original DataFrame
-            df_leads_cleaned = df_leads_cleaned[df_leads_cleaned['comparecimento'] == True].copy()
-            df_leads_cleaned = pd.concat([df_leads_cleaned, df_leads_nao_atendidos])
 
-            # Display leads with other statuses
-            st.write("### 2. Leads na Agenda, com outros status:")
-            df_outros_status = df_leads_cleaned[
-                (df_leads_cleaned['comparecimento'].fillna('Não compareceu') == 'Não compareceu') & 
-                ((df_leads_cleaned['agendamento_novo'] == True) | (df_leads_cleaned['comparecimento_novo'] == True))
-            ].copy()
-            
-            st.dataframe(df_outros_status)
-            
-            # Display leads not found in any check
-            st.write("### 3. Leads não encontrados na Agenda:")
-            df_nao_encontrados = df_leads_cleaned[
-                (df_leads_cleaned['comparecimento'].fillna('Não compareceu') == 'Não compareceu') & 
-                (df_leads_cleaned['agendamento_novo'].isna()) & 
-                (df_leads_cleaned['comparecimento_novo'].isna())
-            ].copy()
-            st.dataframe(df_nao_encontrados)
-            
+            st.write("### Cruzamento Leads x Agenda:")
+            with st.expander("Dados Carregados... Clique para expandir 👇"):
+                # Display leads with 'Atendido' status
+                st.write("### 1. Leads Atendidos:")
+                df_atendidos = df_leads_cleaned[df_leads_cleaned['comparecimento'] == True].copy()
+                st.dataframe(df_atendidos)
+                
+                # Get leads that weren't 'Atendido' and check for other statuses
+                df_leads_nao_atendidos = df_leads_cleaned[df_leads_cleaned['comparecimento']
+                                                .fillna('Não compareceu') == 'Não compareceu'].copy()
+                
+                df_leads_nao_atendidos = check_if_lead_has_other_status(
+                    df_leads_nao_atendidos,
+                    df_appointments_agendamentos
+                )
+                # First, update the non-attended leads in the original DataFrame
+                df_leads_cleaned = df_leads_cleaned[df_leads_cleaned['comparecimento'] == True].copy()
+                df_leads_cleaned = pd.concat([df_leads_cleaned, df_leads_nao_atendidos])
+
+                # Display leads with other statuses
+                st.write("### 2. Leads na Agenda, com outros status:")
+                df_outros_status = df_leads_cleaned[
+                    (df_leads_cleaned['comparecimento'].fillna('Não compareceu') == 'Não compareceu') & 
+                    ((df_leads_cleaned['agendamento_novo'] == True) | (df_leads_cleaned['comparecimento_novo'] == True))
+                ].copy()
+                
+                st.dataframe(df_outros_status)
+                
+                # Display leads not found in any check
+                st.write("### 3. Leads não encontrados na Agenda:")
+                df_nao_encontrados = df_leads_cleaned[
+                    (df_leads_cleaned['comparecimento'].fillna('Não compareceu') == 'Não compareceu') & 
+                    (df_leads_cleaned['agendamento_novo'].isna()) & 
+                    (df_leads_cleaned['comparecimento_novo'].isna())
+                ].copy()
+                st.dataframe(df_nao_encontrados)
+                        
             with st.container(border=True):
-                # Display summary statistics
+                col1, col2 = st.columns(2)
                 total_leads = len(df_leads_cleaned)
-                st.write("\n### Resumo da Análise:")
-                st.write(f"Total de Leads: {total_leads}")
-                st.write(f"✅ Atendidos: {len(df_atendidos)} ({(len(df_atendidos)/total_leads*100):.1f}%)")
-                st.write(f"📋 Com Outro Status: {len(df_outros_status)} ({(len(df_outros_status)/total_leads*100):.1f}%)")
-                st.write(f"❓ Não Encontrados: {len(df_nao_encontrados)} ({(len(df_nao_encontrados)/total_leads*100):.1f}%)")
+                
+                with col1:
+                    st.write("\n### Resumo da Análise:")
+                    st.write(
+                        f"🧲 | {total_leads} -> Total de Leads")
+                    st.write(
+                        f"✅ | {len(df_atendidos)} ({(len(df_atendidos)/total_leads*100):.1f}%) -> Atendidos")
+               
+                with col2:
+                    st.write("\n###")
+                    st.write(
+                        f"📅 | {len(df_outros_status)} ({(len(df_outros_status)/total_leads*100):.1f}%) -> Agendado, Confirmado, Falta e Cancelado")
+                    st.write(
+                        f"⚠️ | {len(df_nao_encontrados)} ({(len(df_nao_encontrados)/total_leads*100):.1f}%) ->Não foram encontrados na Agenda")
                 
             # Showing off FINAL dataframe with all checks
-            st.write("### Dataframe Final dos Leads:")
+            st.write("### Leads x Agenda Final:")
 
-            # Fill column "Status" NA with "Sem Status"
-            df_leads_cleaned['status'] = df_leads_cleaned['status'].fillna('Sem Status')
+            # Fill column "Status" NA with "Não está na agenda"
+            df_leads_cleaned['status'] = df_leads_cleaned['status'].fillna('Não está na agenda')
 
             # where status_novo is not null, fill status with status_novo
             df_leads_cleaned['status'] = df_leads_cleaned.apply(lambda row: row['status_novo'] if pd.notna(row['status_novo']) else row['status'], axis=1)
@@ -241,36 +234,19 @@ def load_page_marketing():
             df_leads_cleaned['unidade'] = df_leads_cleaned.apply(lambda row: row['unidade_novo'] if pd.notna(row['unidade_novo']) else row['unidade'], axis=1)
             df_leads_cleaned['data_agenda'] = df_leads_cleaned.apply(lambda row: row['data_agenda_novo'] if pd.notna(row['data_agenda_novo']) else row['data_agenda'], axis=1)
 
-            st.dataframe(df_leads_cleaned)
+            df_leads_cleaned_final = df_leads_cleaned[marketing_clean_columns]
+            df_leads_cleaned_final = df_leads_cleaned_final.fillna('')
 
-            # TODO
-            # Atendido = matched
-            # Falta = matched
-            # Cancelado = matched
-            # Agendado = matched
+            st.dataframe(df_leads_cleaned_final)
 
-        # st.markdown("---")
-        # st.header("Google")
-        # df_leads_google = df_leads_cleaned[df_leads_cleaned['Fonte'] == 'Google Pesquisa']
-        # df_leads_google = process_lead_categories(df_leads_google)
-        
-        # df_leads_google_by_month = df_leads_google.groupby(['Mês']).agg({'ID do lead': 'nunique'}).reset_index()
-        # df_leads_google_by_month_and_store = df_leads_google.groupby(['Mês', 'Unidade']).agg({'ID do lead': 'nunique'}).reset_index()
-        # st.dataframe(df_leads_google_by_month)
+            st.markdown("---")
 
-        # # Div groupby Instagram
-        # st.markdown("---")
-        # st.header("Facebook Leads")
-        # df_leads_facebook_leads = df_leads_cleaned[df_leads_cleaned['Fonte'] == 'Facebook Leads']
-        # df_leads_facebook_leads = process_lead_categories(df_leads_facebook_leads)
-        
-        # df_leads_facebook_leads_by_month = df_leads_facebook_leads.groupby(['Mês']).agg({'ID do lead': 'nunique'}).reset_index()
-        # df_leads_facebook_leads_by_month_and_store = df_leads_facebook_leads.groupby(['Mês', 'Unidade']).agg({'ID do lead': 'nunique'}).reset_index()
-        # st.dataframe(df_leads_facebook_leads_by_month)
+            st.write("""
+                    Está tudo certo com os dados? \n
+                    Se sim, clique no botão abaixo para a magia acontecer!
+                """)
+            if st.button("Salvar no Banco de Dados", icon="💾"):
+                    st.balloons()
 
-        # # Check if leads_facebook and leads_google are in
-
-        # st.dataframe(df_leads_facebook_leads)
-        # st.dataframe(df_leads_google)
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
