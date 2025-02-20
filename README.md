@@ -45,13 +45,15 @@ This platform enables marketing, operations, sales, and finance teams to access,
 ## DEV BACKLOG
 
 ### Phase 1: Data Integration
-- [ ] Implement Lead-to-Sales correlation analysis
-- [ ] Design and deploy analytics database
+- [X] Implement Lead-to-Sales correlation analysis
+- [X] Design and deploy analytics database
 - [ ] Create persistent storage for marketing metrics
 - [ ] Integrate marketing expenditure data
 
 ### Phase 2: Advanced Analytics
-- [ ] Deploy Marketing Analytics dashboard with database integration
+- [X] Implement Fast API Backend
+- [X] Connect with AWS RDS postgresDB
+- [X] Deploy Marketing Analytics dashboard with database integration
 - [ ] Implement advanced filtering and segmentation
 - [ ] Add custom reporting capabilities
 - [ ] Create automated data quality checks
@@ -93,3 +95,8 @@ This platform enables marketing, operations, sales, and finance teams to access,
 
 ## License
 This project is proprietary software owned by Luis Faria. All contributions are welcome.
+
+## Useful Commands/Links:
+- http://127.0.0.1:8000/docs#/
+- uvicorn backend.main:app --reload
+- streamlit run app.py
