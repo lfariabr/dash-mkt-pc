@@ -51,3 +51,4 @@ Thumbs.db
 .windsurfrules
 
 .env
+# *.ipynb

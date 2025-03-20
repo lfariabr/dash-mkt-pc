@@ -20,7 +20,7 @@ from views.leads.leads_grouper import (
 
 def load_data():
     """Load and preprocess leads data."""
-    leads = 'db/leads.xlsx' #TODO
+    leads = 'db/leads.xlsx'
 
     df = pd.read_excel(leads)
     df = df.loc[~df['Unidade'].isin(stores_to_remove)]

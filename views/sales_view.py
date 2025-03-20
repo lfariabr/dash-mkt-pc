@@ -15,7 +15,7 @@ from views.sales.sales_grouper import (
 
 def load_data():
     """Load and preprocess sales data."""
-    sales = 'db/sales.xlsx' #TODO
+    sales = 'db/sales.xlsx'
 
     df = pd.read_excel(sales)
     df = df.loc[~df['Unidade'].isin(stores_to_remove)]
@@ -59,7 +59,6 @@ def load_page_sales():
 
     #####
     # Div 1: Vendas por Dia
-    # TODO: Adicionar uma linha de tendência no gráfico
     groupby_vendas_por_dia = groupby_sales_por_dia(df_sales)
 
     grafico_vendas_por_dia = px.bar(

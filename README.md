@@ -1,53 +1,74 @@
-# Data Analytics Dashboard
-## Pró-Corpo Estética
+# Dash Analytics
 
-A powerful, streamlit-based analytics dashboard for lead management and business intelligence. 
-This platform enables marketing, operations, sales, and finance teams to access, analyze, and visualize data through an ETL pipeline.
-
-## Tech Stack
-- **Frontend**: Streamlit
-- **Data Processing**: Pandas, Openpyxl
-- **Visualization**: Plotly
-- **Architecture**: ETL Pipeline
+A comprehensive analytics dashboard for tracking and analyzing leads, appointments, and sales data.
 
 ## Features
-- **Interactive Data Filtering**:
-  - Dynamic time period selection
-  - Multi-unit filtering
-  - Source and category segmentation
 
-- **Comprehensive Analytics**:
-  - Real-time metrics dashboard
-  - Performance KPIs
-  - Conversion tracking
-  - ROI analysis
+### Data Management
+- Lead tracking and management
+- Appointment scheduling and status tracking
+- Sales performance analytics
+- Marketing campaign effectiveness
+- Cross-functional data analysis
 
-- **Advanced Visualizations**:
-  - Temporal analysis (Daily/Monthly/Yearly)
-  - Geographic distribution
-  - Source attribution
-  - Status flow tracking
-  - Paid vs Organic performance metrics
+### Analytics & Reporting
+- Real-time dashboard
+- Custom report generation
+- Performance metrics
+- Marketing ROI analysis
+- Lead conversion tracking
 
-- **Cross-functional Analysis**:
-  - Lead-to-Appointment tracking
-  - Conversion path analysis
-  - Marketing attribution
-  - Sales performance metrics
+### Technical Features
+- FastAPI backend with PostgreSQL integration
+- RESTful API with comprehensive CRUD operations
+- SQLAlchemy ORM for database management
+- Pydantic models for data validation
+- Interactive API documentation (Swagger UI)
+
+## Core Components
+
+### Frontend
+- Interactive dashboards
+- Data visualization
+- Real-time updates
+- Responsive design
+
+### Backend
+- FastAPI application
+- PostgreSQL database
+- AWS RDS integration
+- RESTful API endpoints
+
+### Analytics
+- Lead metrics
+- Appointment tracking
+- Sales performance metrics
+- Marketing campaign analysis
+- Cross-functional insights
 
 ## DONE
- Leads Dashboard
- Appointments Management
- Sales Analytics
- Marketing Overview
- Lead-Appointment Cross Analysis
+- Leads Dashboard
+- Appointments Management
+- Sales Analytics
+- Marketing Overview
+- Lead-Appointment Cross Analysis
+- FastAPI Backend Integration:
+  - Complete CRUD operations
+  - PostgreSQL database connection
+  - AWS RDS deployment
+  - Swagger documentation (/docs)
+- Database Models:
+  - Lead management
+  - Appointment tracking
+  - Sales recording
 
 ## DEV BACKLOG
-
-### Phase 1: Data Integration
-- [X] Implement Lead-to-Sales correlation analysis
-- [X] Design and deploy analytics database
-- [ ] Create persistent storage for marketing metrics
+- [ ] Implement user authentication
+- [ ] Add role-based access control
+- [ ] Enhance error logging
+- [ ] Implement caching layer
+- [ ] Add automated testing
+- [ ] Set up CI/CD pipeline
 - [ ] Integrate marketing expenditure data
 
 ### Phase 2: Advanced Analytics
@@ -59,44 +80,51 @@ This platform enables marketing, operations, sales, and finance teams to access,
 - [ ] Create automated data quality checks
 
 ### Phase 3: AI/ML Integration
-- [ ] Develop ML model for conversion prediction
-- [ ] Implement source effectiveness scoring
-- [ ] Add anomaly detection for data quality
-- [ ] Create predictive analytics for:
-  - Lead quality scoring
-  - Conversion probability
-  - Customer lifetime value
-  - Store performance prediction
-
-### Phase 4: Platform Enhancement
-- [ ] Add user authentication and role-based access
-- [ ] Implement real-time alerting system
-- [ ] Create automated reporting scheduler
-- [ ] Add API endpoints for external integrations
-- [ ] Implement A/B testing capabilities
-
-### Phase 5: Optimization
-- [ ] Performance optimization for large datasets
-- [ ] Cache implementation for faster loading
-- [ ] Mobile responsiveness enhancement
-- [ ] Advanced data export capabilities
+- [ ] Implement lead scoring model
+- [ ] Add predictive analytics
+- [ ] Create recommendation engine
+- [ ] Deploy automated insights
 
 ## Getting Started
 
+### Prerequisites
+- Python 3.10+
+- PostgreSQL
+- pip (Python package manager)
+
+### Installation
 1. Clone the repository
-2. Install dependencies:
+   ```bash
+   git clone <repository-url>
+   ```
+
+2. Install dependencies
    ```bash
    pip install -r requirements.txt
    ```
-3. Run the application:
+
+3. Set up environment variables
+   ```bash
+   cp .env.example .env
+   # Edit .env with your configuration
+   ```
+
+### Running the Application
+1. Start the FastAPI backend:
+   ```bash
+   uvicorn backend.main:app --reload
+   ```
+
+2. Start the Streamlit frontend:
    ```bash
    streamlit run app.py
    ```
 
+## Useful Resources
+- API Documentation: http://127.0.0.1:8000/docs
+- Backend Server: uvicorn backend.main:app --reload
+- Frontend Server: streamlit run app.py
+- Database Management: PostgreSQL on AWS RDS
+
 ## License
 This project is proprietary software owned by Luis Faria. All contributions are welcome.
-
-## Useful Commands/Links:
-- http://127.0.0.1:8000/docs#/
-- uvicorn backend.main:app --reload
-- streamlit run app.py

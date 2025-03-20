@@ -11,7 +11,7 @@ from helpers.date import transform_date_from_appointments
 
 def load_data():
     """Load and preprocess leads data."""
-    appointments = 'db/appointments.xlsx' #TODO
+    appointments = 'db/appointments.xlsx'
 
     df = pd.read_excel(appointments)
     df = df.loc[~df['Unidade do agendamento'].isin(stores_to_remove)]

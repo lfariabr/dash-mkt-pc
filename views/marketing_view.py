@@ -17,7 +17,7 @@ from helpers.cleaner import clean_telephone
 from helpers.date import (transform_date_from_sales,
                          transform_date_from_leads,
                          transform_date_from_appointments)
-from views.marketing.apt_checker import check_if_lead_has_other_status, check_if_lead_has_atendido_status
+from views.marketing.worker import *
 from views.marketing.sales_checker import check_if_lead_has_purchased
 
 def load_data():
@@ -67,14 +67,9 @@ def load_page_marketing():
         upload_appointments_file = st.file_uploader("Upload Appointments File", type=["xlsx"])
         if upload_appointments_file is not None:
             df_appointments = pd.read_excel(upload_appointments_file)
-            df_appointments = df_appointments.loc[~df_appointments['Unidade do agendamento'].isin(stores_to_remove)]
+            df_appointments = clean_agd_df(df_appointments)
             df_appointments = transform_date_from_appointments(df_appointments)
-            
-            # Clean phone numbers
-            df_appointments['Telefone'] = df_appointments['Telefone'].fillna('Cliente sem telefone')
-            df_appointments['Telefone'] = df_appointments['Telefone'].astype(str)
-            df_appointments['Telefones Limpos'] = df_appointments['Telefone'].apply(clean_telephone)
-            
+
             # Filter appointments for comparecimentos and agendamentos
             df_appointments_comparecimentos = df_appointments[df_appointments['Status'].isin(status_comparecimentos_marketing)]
             df_appointments_comparecimentos = df_appointments_comparecimentos[df_appointments_comparecimentos['Procedimento'].isin(aesthetic_procedures_aval)]
@@ -85,21 +80,8 @@ def load_page_marketing():
     with col3:
         upload_sales_file = st.file_uploader("Upload Sales File", type=["xlsx"])
         if upload_sales_file is not None:
-
-            
             df_sales = pd.read_excel(upload_sales_file)
-            df_sales = df_sales.loc[~df_sales['Unidade'].isin(stores_to_remove)]
-            df_sales = df_sales[df_sales['Status'] == 'Finalizado']
-
-            df_sales['Valor líquido'] = pd.to_numeric(df_sales['Valor líquido'].astype(str).str.replace(',', '.'), errors='coerce')
-            df_sales['Telefone(s) do cliente'] = df_sales['Telefone(s) do cliente'].fillna('Cliente sem telefone')
-            df_sales['Email do cliente'] = df_sales['Email do cliente'].fillna('Cliente sem e-mail')
-            df_sales['Telefone(s) do cliente'] = df_sales['Telefone(s) do cliente'].astype(str)
-            df_sales['Telefones Limpos'] = df_sales['Telefone(s) do cliente'].apply(lambda x: [clean_telephone(num) for num in str(x).split('/')])
-            colunas_reduzido =  ['Telefones Limpos', 'Telefone(s) do cliente', 'ID orçamento', 'Data venda',
-                    'Unidade', 'Valor líquido', 'ID cliente', 'Procedimento', 'Data nascimento cliente', 'Profissão cliente']
-            df_sales = df_sales[colunas_reduzido]
-
+            df_sales = clean_sales_df(df_sales)
             df_sales = transform_date_from_sales(df_sales)
     
     if df_leads is None or df_appointments is None or df_sales is None:
@@ -143,11 +125,12 @@ def load_page_marketing():
             ###############
             ###### df_marketing_data
             # Cleaning data
+            st.write("Começando df_marketing")
             df_leads_cleaned = df_leads_google_and_facebook[lead_clean_columns]
             df_leads_cleaned['Telefone do lead'] = df_leads_cleaned['Telefone do lead'].astype(str)
             df_leads_cleaned['Telefone do lead'] = df_leads_cleaned['Telefone do lead'].apply(clean_telephone)
-            df_appointments_cleaned = df_appointments[appointments_clean_columns]
-            df_sales_cleaned = df_sales[sales_clean_columns]
+            # df_appointments_cleaned = df_appointments[appointments_clean_columns]
+            # df_sales_cleaned = df_sales[sales_clean_columns]
             
             st.markdown("---")
             st.write("Leads que vamos conferir:")
@@ -156,11 +139,11 @@ def load_page_marketing():
 
             st.markdown("---")
             st.write("Agendamentos que vamos conferir:")
-            st.dataframe(df_appointments_cleaned.sample(n=5, random_state=123))
+            st.dataframe(df_appointments.sample(n=5, random_state=123))
 
             st.markdown("---")
             st.write("Vendas que vamos conferir:")
-            st.dataframe(df_sales_cleaned.sample(n=5, random_state=123))
+            st.dataframe(df_sales.sample(n=5, random_state=123))
         
         st.markdown("---")
         st.write("""
@@ -181,8 +164,10 @@ def load_page_marketing():
             with st.expander("Dados Carregados... Clique para expandir 👇"):
                 # Display leads with 'Atendido' status
                 st.write("### 1. Leads Atendidos:")
-                df_atendidos = df_leads_cleaned[df_leads_cleaned['comparecimento'] == True].copy()
+                df_atendidos = df_leads_cleaned[df_leads_cleaned['status'] == 'Atendido'].copy()
                 st.dataframe(df_atendidos)
+
+                # TODO here and onwards...
                 
                 # Get leads that weren't 'Atendido' and check for other statuses
                 df_leads_nao_atendidos = df_leads_cleaned[df_leads_cleaned['comparecimento']
