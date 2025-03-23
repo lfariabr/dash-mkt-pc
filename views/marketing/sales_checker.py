@@ -3,7 +3,7 @@ import re
 from datetime import datetime
 from helpers.cleaner import clean_telephone
 
-def check_if_lead_has_purchased(df_leads_cleaned_final, df_sales_cleaned):
+def check_if_lead_has_purchased(df_leads_cleaned_final, df_sales):
     """
     # Merge the exploded DataFrame with df_leads
     df_leads_compras = pd.merge(
@@ -23,7 +23,7 @@ def check_if_lead_has_purchased(df_leads_cleaned_final, df_sales_cleaned):
     df_leads_compras['Valor líquido'].sum()
     """
     leads = df_leads_cleaned_final.copy()
-    sales = df_sales_cleaned.copy()
+    sales = df_sales.copy()
     
     leads['Telefone do lead'] = leads['Telefone do lead'].fillna('Cliente sem telefone')
     leads['Telefone do lead'] = leads['Telefone do lead'].astype(str)

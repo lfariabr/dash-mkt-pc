@@ -78,11 +78,44 @@ def check_if_lead_has_atendido_status(df_leads_cleaned, df_appointments_comparec
 
     return df_leads_cleaned
     
-def check_if_lead_has_other_status(df_leads, df_appointments_agendamentos):
+def check_if_lead_has_other_status(df_leads_nao_atendidos, df_appointments_agendamentos):
     """
     Function to check if a lead has an appointment with a status of 'Agendado'
     """
-    pass
+    # Create copies to avoid modifying original dataframes
+    df_leads_nao_atendidos = df_leads_nao_atendidos.copy()
+    df_appointments_agendamentos = df_appointments_agendamentos.copy()
+
+    # TODO @apt_cleaner
+    def eh_agendamento(row):
+        telefone = row['Telefone do lead']
+        email = row['Email do lead']
+
+        # Find matches in df_appointments_agendamentos
+        match = df_appointments_agendamentos[
+            (df_appointments_agendamentos['Telefones Limpos'].apply(lambda x: telefone in x)) |
+            (df_appointments_agendamentos['Email'] == email)
+        ]
+
+        if not match.empty:
+            data = match.iloc[0]['Data']
+            procedimento = match.iloc[0]['Procedimento']
+            status = match.iloc[0]['Status']
+            unidade = match.iloc[0]['Unidade do agendamento']
+
+            return pd.Series({
+                'data_agenda': data,
+                'procedimento': procedimento,
+                'status': status,
+                'unidade': unidade
+            })
+
+        return pd.Series({'data_agenda': None, 'procedimento': None, 'status': None, 'unidade': None})
+
+    # Apply function to df_leads_nao_atendidos
+    df_leads_nao_atendidos[['data_agenda', 'procedimento', 'status', 'unidade']] = df_leads_nao_atendidos.apply(eh_agendamento, axis=1)
+
+    return df_leads_nao_atendidos
 
 # tetntar concecntrar em um unico arquivo
     
