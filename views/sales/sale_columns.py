@@ -9,4 +9,6 @@ colunas_reduzido =  [
                     'Data venda',
                     'Unidade',
                     'Valor líquido',
+                    'Total comprado pelo cliente',
+                    'Número de orçamentos do cliente'
 ]

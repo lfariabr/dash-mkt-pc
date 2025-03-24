@@ -128,8 +128,6 @@ def load_page_marketing():
                 df_leads_cleaned = df_leads_google_and_facebook[lead_clean_columns]
                 df_leads_cleaned['Telefone do lead'] = df_leads_cleaned['Telefone do lead'].astype(str)
                 df_leads_cleaned['Telefone do lead'] = df_leads_cleaned['Telefone do lead'].apply(clean_telephone)
-                # df_appointments_cleaned = df_appointments[appointments_clean_columns]
-                # df_sales_cleaned = df_sales[sales_clean_columns]
                 
                 st.markdown("---")
                 st.write("Leads que vamos conferir:")
@@ -194,70 +192,106 @@ def load_page_marketing():
                 st.dataframe(df_nao_encontrados)
             
 
-            with st.container(border=True):
-                col1, col2 = st.columns(2)
-                total_leads = len(df_leads_cleaned)
+            # with st.container(border=True):
+            #     col1, col2 = st.columns(2)
+            #     total_leads = len(df_leads_cleaned)
                 
-                with col1:
-                    st.write("\n### Resumo da Análise - Leads x Agenda:")
-                    st.write(
-                        f"👀 | {total_leads} -> Total de Leads")
-                    st.write(
-                        f"✅ | {len(df_atendidos)} ({(len(df_atendidos)/total_leads*100):.1f}%) -> Atendidos")
+            #     with col1:
+            #         st.write("\n### Resumo da Análise - Leads x Agenda:")
+            #         st.write(
+            #             f"👀 | {total_leads} -> Total de Leads")
+            #         st.write(
+            #             f"✅ | {len(df_atendidos)} ({(len(df_atendidos)/total_leads*100):.1f}%) -> Atendidos")
                
-                with col2:
-                    st.write("\n###")
-                    st.write(
-                        f"📅 | {len(df_outros_status)} ({(len(df_outros_status)/total_leads*100):.1f}%) -> Agendado, Confirmado, Falta e Cancelado")
-                    st.write(
-                        f"⚠️ | {len(df_nao_encontrados)} ({(len(df_nao_encontrados)/total_leads*100):.1f}%) ->Não foram encontrados na Agenda")
+            #     with col2:
+            #         st.write("\n###")
+            #         st.write(
+            #             f"📅 | {len(df_outros_status)} ({(len(df_outros_status)/total_leads*100):.1f}%) -> Agendado, Confirmado, Falta e Cancelado")
+            #         st.write(
+            #             f"⚠️ | {len(df_nao_encontrados)} ({(len(df_nao_encontrados)/total_leads*100):.1f}%) ->Não foram encontrados na Agenda")
                 
-            # Showing off FINAL dataframe with all checks
-            st.write("### Leads x Agenda Final:")
+            # st.write("### Debug: Leads x Agenda Final:")
 
             # Fill column "Status" NA with "Não está na agenda"
             df_leads_cleaned['status'] = df_leads_cleaned['status'].fillna('Não está na agenda')
-
-            # where status_novo is not null, fill status with status_novo
-            # df_leads_cleaned['status'] = df_leads_cleaned.apply(lambda row: row['status_novo'] if pd.notna(row['status_novo']) else row['status'], axis=1)
-            # df_leads_cleaned['procedimento'] = df_leads_cleaned.apply(lambda row: row['procedimento_novo'] if pd.notna(row['procedimento_novo']) else row['procedimento'], axis=1)
-            # df_leads_cleaned['unidade'] = df_leads_cleaned.apply(lambda row: row['unidade_novo'] if pd.notna(row['unidade_novo']) else row['unidade'], axis=1)
-            # df_leads_cleaned['data_agenda'] = df_leads_cleaned.apply(lambda row: row['data_agenda_novo'] if pd.notna(row['data_agenda_novo']) else row['data_agenda'], axis=1)
-
             df_leads_cleaned_final = df_leads_cleaned[marketing_clean_columns]
             df_leads_cleaned_final = df_leads_cleaned_final.fillna('')
-
-            st.dataframe(df_leads_cleaned_final)
-
+            # st.dataframe(df_leads_cleaned_final)
+            
             st.markdown("---")
 
-            st.write("### Leads x Agenda x Vendas Final:")
-            # TODO here onwards... 
+            # TODO here onwards...
 
-            df_leads_with_purchases = check_if_lead_has_purchased(df_leads_cleaned_final, df_sales)
-            df_leads_with_purchases = df_leads_with_purchases.fillna('')
+            df_leads_with_purchases = check_if_lead_has_purchased(
+                                        df_leads_cleaned_final, 
+                                        df_sales
+                                    )
             
-            # Creating column "comprou"
-            df_leads_with_purchases['comprou'] = df_leads_with_purchases['Unidade_y'] != 'Não comprou'
-            df_leads_with_purchases['Valor líquido'] = pd.to_numeric(df_sales['Valor líquido'].astype(str).str.replace(',', '.'), errors='coerce')
-            st.dataframe(df_leads_with_purchases)
+            df_leads_with_purchases['Valor líquido'] = pd.to_numeric(
+                                                            df_leads_with_purchases['Valor líquido']
+                                                            .astype(str).str.replace(',', '.'), 
+                                                            errors='coerce'
+                                                        )
+            # st.dataframe(df_leads_with_purchases)
             
             # COOL STATISTICS:
-            total_leads_atendidos = df_leads_with_purchases[df_leads_with_purchases['status'] == 'Atendido']['ID do lead'].nunique()
             total_leads_compraram = df_leads_with_purchases[df_leads_with_purchases['comprou'] == True]['ID do lead'].nunique()
             total_comprado = df_leads_with_purchases[df_leads_with_purchases['comprou'] == True]['Valor líquido'].sum()
+            total_leads = len(df_leads_cleaned)
 
             with st.container(border=True):
-                st.write("### Resumo da Análise - Leads x Agenda x Vendas:")
-                st.write(f"📅 | {total_leads_atendidos} -> Total de leads atendidos")
-                st.write(f"🎉 | {total_leads_compraram} -> Total de leads que compraram")
-                st.write(f"💰 | {total_comprado} -> Total comprado pelos leads")
+                st.write("### Resumo da Análise:")
+                summary_data = {
+                    "Indicador": ["👀 -> Total de Leads", 
+                                 "⚠️ -> Não encontrados na Agenda", 
+                                 "📅 -> Agendado, Confirmado, Falta e Cancelado", 
+                                 "✅ -> Atendidos", 
+                                 "🎉 -> Total de leads que compraram", 
+                                 "💰 -> Total comprado pelos leads"],
+                    "Valor": [
+                        f"{total_leads}",
+                        f"{len(df_nao_encontrados)} ({(len(df_nao_encontrados)/total_leads*100):.1f}%)",
+                        f"{len(df_outros_status)} ({(len(df_outros_status)/total_leads*100):.1f}%)",
+                        f"{len(df_atendidos)} ({(len(df_atendidos)/total_leads*100):.1f}%)",
+                        f"{total_leads_compraram} ({(total_leads_compraram/total_leads*100):.1f}%)",
+                        f"R$ {total_comprado:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+                    ]
+                }
+                
+                # Create the DataFrame and display it as a table
+                df_summary = pd.DataFrame(summary_data)
+                st.dataframe(
+                    df_summary, 
+                    use_container_width=True,  
+                    hide_index=True
+                )
+
+            st.write("### Tabela - Leads x Agenda x Vendas") 
+
+            # Adjusting column names
+            df_leads_with_purchases.columns = [
+                                                "ID do lead", "Email do lead", "Telefone do lead", 
+                                                "Mensagem", "Unidade do lead", "Fonte", "Dia da entrada", 
+                                                "Source", "Medium", "Term", "Content", "Campaign", 
+                                                "Mês do lead", "Categoria", 
+
+                                                # Appointment
+                                                "data_agenda", "procedimento", "status", "unidade na agenda", 
+                                                
+                                                # sales
+                                                "Telefones Limpos", "Telefone(s) do cliente", "ID orçamento",
+                                                "Data venda", "Unidade da venda", "Valor primeiro orçamento", 
+                                                "Total comprado pelo cliente", "Número de orçamentos do cliente",
+                                                "Dia", "Mês da venda", "Dia da Semana", "comprou"]
+
+            df_leads_with_purchases['intervalo da compra'] = (df_leads_with_purchases['Data venda'] - df_leads_with_purchases['Dia da entrada']).dt.days
+            st.dataframe(df_leads_with_purchases)
 
             st.write("""
                     Está tudo certo com os dados? \n
                     Se sim, clique no botão abaixo para salvar os Dados!
                 """)
-            if st.button("Salvar no Banco de Dados", icon="💾"):
+            if st.button("Salvar no Banco de Dados", icon="💾"): 
                     st.balloons()
 
     except Exception as e:

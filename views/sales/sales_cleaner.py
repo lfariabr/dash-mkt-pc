@@ -11,13 +11,16 @@ def filter_relevant_sales_to_mkt(df_sales):
     df_sales['Valor líquido'] = pd.to_numeric(df_sales['Valor líquido'].astype(str).str.replace(',', '.'), errors='coerce')
 
     # df_sales.groupby('Unidade').agg({'Valor líquido': 'sum'})
-    df_sales['Valor líquido'].sum()
+    # df_sales['Valor líquido'].sum()
 
     # df_sales treatment
     df_sales['Telefone(s) do cliente'] = df_sales['Telefone(s) do cliente'].fillna('Cliente sem telefone')
     df_sales['Email do cliente'] = df_sales['Email do cliente'].fillna('Cliente sem e-mail')
     df_sales['Telefone(s) do cliente'] = df_sales['Telefone(s) do cliente'].astype(str)
     df_sales['Telefones Limpos'] = df_sales['Telefone(s) do cliente'].apply(lambda x: [clean_telephone(num) for num in str(x).split('/')])
+
+    df_sales['Total comprado pelo cliente'] = df_sales.groupby('ID cliente')['Valor líquido'].transform('sum')
+    df_sales['Número de orçamentos do cliente'] = df_sales.groupby('ID cliente')['ID orçamento'].transform('nunique')
 
     # Apply reduced columns
     df_sales = df_sales[colunas_reduzido]

@@ -44,11 +44,12 @@ def check_if_lead_has_purchased(df_leads_cleaned_final, df_sales):
 
     # Fill NaNs with 'Não é lead' for cases where no match is found
     df_leads_compras['Unidade_y'] = df_leads_compras['Unidade_y'].fillna('Não comprou')
+    df_leads_compras['comprou'] = df_leads_compras['Unidade_y'] != 'Não comprou'
 
     # Droping duplicated ID do lead
     df_leads_compras = df_leads_compras.drop_duplicates(subset='ID do lead', keep='first')
-    df_leads_compras = df_leads_compras.drop_duplicates(subset='Email do lead', keep='first')
-    df_leads_compras['Valor líquido'].sum()
+    # df_leads_compras = df_leads_compras.drop_duplicates(subset='Email do lead', keep='first')
+    # df_leads_compras['Valor líquido'].sum()
     
     return df_leads_compras
     
