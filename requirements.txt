@@ -19,6 +19,7 @@ requests==2.31.0
 fastapi>=0.68.0
 httpx==0.28.1
 uvicorn>=0.15.0
+email-validator>=2.0.0  
 
 # Authentication
 python-jose[cryptography]>=3.3.0
@@ -26,9 +27,9 @@ python-dotenv>=0.19.0
 
 # Database
 sqlalchemy>=2.0.0
-psycopg2-binary>=2.9.5  # PostgreSQL driver
-aiosqlite>=0.17.0       # Async SQLite support
-alembic>=1.7.5          # Database migrations
+psycopg2-binary>=2.9.5  
+aiosqlite>=0.17.0       
+alembic>=1.7.5          
 
 # Utilities
 pytz==2024.2
