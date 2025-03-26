@@ -1,1 +1,6 @@
-stores_to_remove = ['HOMA', 'PLÁSTICA', 'PRAIA GRANDE', 'CENTRAL']
+stores_to_remove = [
+                    # 'HOMA',
+                    # 'PLÁSTICA',
+                    # 'PRAIA GRANDE',
+                    # 'CENTRAL'
+]

@@ -1,4 +1,3 @@
-
 import re
 
 # Função para limpar telefones
@@ -9,3 +8,9 @@ def clean_telephone(telefone):
     if telefone.startswith('55'):
         telefone = telefone[2:]
     return telefone
+
+columns_to_hide_from_final_df_leads_appointments_sales = [
+                    "Telefones Limpos", 
+                    "Telefone(s) do cliente",
+                    "Dia da Semana",
+                ]

@@ -1,5 +1,6 @@
-# Dicionário de mapeamento: chave é a palavra-chave, valor é a categoria
+# Key, Category
 category_mapping = {
+    # Pró-Corpo
     'Preenchimento': 'Preenchimento',
     'Botox': 'Botox',
     'Ultraformer': 'Ultraformer',
@@ -13,7 +14,16 @@ category_mapping = {
     'olheiras': 'Preenchimento',
     'prolipo' : 'Enzimas',
     'Prolipo' : 'Enzimas',
-    'rugas' : 'Botox'
+    'rugas' : 'Botox',
+    
+    # Cirurgia
+    'Lipoaspiração': 'Lipoaspiração',
+    'Abdominoplastia': 'Abdominoplastia',
+    'Mastopexia': 'Mastopexia',
+    'Prótese de Mama': 'Prótese de Mama',
+    'Mamoplastia Redutora': 'Mamoplastia',
+    'Mamoplastia': 'Mamoplastia',
+    'Cirurgia': 'Cirurgia',
 }
 
 def categorize(text):

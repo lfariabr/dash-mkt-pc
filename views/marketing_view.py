@@ -23,9 +23,18 @@ from helpers.date import (transform_date_from_sales,
                          transform_date_from_appointments)
 from views.marketing.worker import *
 from views.marketing.sales_checker import check_if_lead_has_purchased
+from helpers.cleaner import columns_to_hide_from_final_df_leads_appointments_sales
+import sys
 
 import logging
 logging.basicConfig(level=logging.INFO)
+
+# Add backend to sys.path if needed
+sys.path.append('/Users/luisfaria/Desktop/sEngineer/dash')
+
+# Import database components
+from backend.database import SessionLocal, engine
+from backend.models.mkt_lead import MktLead
 
 def load_data():
     """Load and preprocess sales data. test"""
@@ -93,7 +102,7 @@ def load_page_marketing():
     
     if df_leads is None or df_appointments is None or df_sales is None:
         st.warning("⚠️  Faça upload dos 3 arquivos para começar a análise!")
-        return  # Stop execution until data is uploaded
+        return
 
     try:
         ##############
@@ -101,7 +110,7 @@ def load_page_marketing():
         
         with st.spinner("Carregando dados..."):
         
-            with st.expander("Dados Carregados... Clique para expandir 👇"):
+            with st.expander("✅ Dados Carregados... Clique para conferir as bases 👇"):
                 st.header("Leads por Fonte")
                 col1, col2, col3 = st.columns(3)
             
@@ -152,15 +161,19 @@ def load_page_marketing():
         st.markdown("---")
         st.write("""
                     Está tudo certo com os dados? \n
-                    Se sim, clique no botão abaixo para a magia acontecer!
+                    Se sim, clique no botão abaixo para cruzar os dados!!
                 """)
-        if st.button("Play", icon="🔥"):
+        if st.button(
+                    "Play",
+                    icon="🎲", 
+                    type="primary"):
+
+            st.markdown("---")
 
             progress_bar = st.progress(0)
             spinner_container = st.empty()
 
             with spinner_container.container():
-                st.spinner("A magia acontece...")
                 # Simulating progress (0-60%):
                 for i in range (0, 61, 20):
                     progress_bar.progress(i)
@@ -184,7 +197,7 @@ def load_page_marketing():
             spinner_container.empty()
 
             st.write("### Cruzamento Leads x Agenda:")
-            with st.expander("Dados Carregados... Clique para expandir 👇"):
+            with st.expander("🔧 Dados em processamento... Clique se quiser conferir os detalhes 👇"):
 
                 # Display leads with 'Atendido' status
                 ######################################
@@ -268,30 +281,36 @@ def load_page_marketing():
                     hide_index=True
                 )
             with st.container(border=True):
-                st.write("### Tabela - Leads x Agenda x Vendas") 
+                st.write("### Tabela: Leads x Agenda x Vendas") 
                 # Adjusting column names
                 df_leads_with_purchases.columns = [
-                                                    "ID do lead", "Email do lead", "Telefone do lead", 
+                                                    "ID lead", "Email do lead", "Telefone do lead", 
                                                     "Mensagem", "Unidade do lead", "Fonte", "Dia da entrada", 
                                                     "Source", "Medium", "Term", "Content", "Campaign", 
                                                     "Mês do lead", "Categoria", 
 
                                                     # Appointment
-                                                    "data_agenda", "procedimento", "status", "unidade na agenda", 
+                                                    "Data Na Agenda", "Procedimento", "Status Agenda", "Unidade da Agenda", 
                                                     
                                                     # sales
                                                     "Telefones Limpos", "Telefone(s) do cliente", "ID orçamento",
-                                                    "Data venda", "Unidade da venda", "Valor primeiro orçamento", 
+                                                    "Data Venda", "Unidade da Venda", "Valor primeiro orçamento", 
                                                     "Total comprado pelo cliente", "Número de orçamentos do cliente",
-                                                    "Dia", "Mês da venda", "Dia da Semana", "comprou"]
+                                                    "Dia", "Mês da Venda", "Dia da Semana", "comprou"]
+                
+                df_leads_with_purchases = df_leads_with_purchases.drop(columns=columns_to_hide_from_final_df_leads_appointments_sales)
+                df_leads_with_purchases['intervalo da compra'] = (df_leads_with_purchases['Data Venda'] - df_leads_with_purchases['Dia da entrada']).dt.days
+                df_leads_with_purchases = df_leads_with_purchases.fillna("")
 
-                df_leads_with_purchases['intervalo da compra'] = (df_leads_with_purchases['Data venda'] - df_leads_with_purchases['Dia da entrada']).dt.days
                 st.dataframe(df_leads_with_purchases)
 
             st.write("""
                     Está tudo certo com os dados? \n
                     Se sim, clique no botão abaixo para salvar os Dados!
                 """)
+
+                # TODO: re-think this process.. maybe it is better if we just
+                # create a new file for the DB connection and then with the click, save it.
             
             # Initialize the session state variables if they don't exist
             if 'save_button_clicked' not in st.session_state:
@@ -337,26 +356,22 @@ def load_page_marketing():
                 status_text = st.empty()
                 
                 try:
-                    # First check if the backend API is running
-                    api_url = "http://localhost:8000/mkt-leads/"
-                    api_health_url = "http://localhost:8000/"
-                    
                     # Debug the request we're about to make
-                    st.write(f"Verificando conexão com o backend em: {api_health_url}")
-                    logging.info(f"Verificando conexão com o backend em: {api_health_url}")
+                    st.write("Conectando ao banco de dados diretamente...")
+                    logging.info("Conectando ao banco de dados diretamente...")
                     
-                    # Check if the API is accessible
+                    # Check if the database is accessible
                     try:
-                        import requests
-                        st.write("Enviando requisição GET para verificar o backend...")
-                        health_response = requests.get(api_health_url, timeout=5)
-                        st.write(f"Status do backend: {health_response.status_code}")
-                        logging.info(f"Status do backend: {health_response.status_code}")
+                        # Verify database connection
+                        inspector = inspect(engine)
+                        tables = inspector.get_table_names()
+                        st.write(f"Conexão com banco de dados bem sucedida. Tabelas disponíveis: {tables}")
+                        logging.info(f"Conexão com banco de dados bem sucedida. Tabelas disponíveis: {tables}")
                         
-                        if health_response.status_code != 200:
-                            error_msg = f"Backend API não está respondendo corretamente (código {health_response.status_code})"
+                        if "mkt_leads" not in tables:
+                            error_msg = "Tabela 'mkt_leads' não encontrada no banco de dados"
                             st.error(error_msg)
-                            st.error("Certifique-se de que o servidor FastAPI está em execução com: uvicorn backend.main:app --reload")
+                            st.error("Certifique-se de que as migrações foram executadas corretamente")
                             st.session_state.processing_error = error_msg
                             st.session_state.processing_complete = True  # Mark as complete even with error
                             logging.error(error_msg)
@@ -364,14 +379,13 @@ def load_page_marketing():
                         
                         st.session_state.api_connected = True
                         
-                    except requests.exceptions.RequestException as e:
-                        error_msg = f"Não foi possível conectar ao backend API: {str(e)}"
+                    except Exception as e:
+                        error_msg = f"Não foi possível conectar ao banco de dados: {str(e)}"
                         st.error("⚠️ " + error_msg)
-                        st.error("Certifique-se de que o servidor FastAPI está em execução com: uvicorn backend.main:app --reload")
-                        st.error(f"Teste em outro terminal: curl {api_health_url}")
+                        st.error("Certifique-se de que as configurações do banco de dados estão corretas")
                         st.session_state.processing_error = error_msg
                         st.session_state.processing_complete = True  # Mark as complete even with error
-                        logging.error(f"Erro de conexão com API: {error_msg}")
+                        logging.error(f"Erro de conexão com banco de dados: {error_msg}")
                         return
                     
                     # Debug: Check if DataFrame exists and has data
@@ -391,81 +405,64 @@ def load_page_marketing():
                     status_text.text(f"Processando {total_rows} registros...")
                     logging.info(f"Iniciando processamento de {total_rows} registros...")
                     
-                    for index, row in df_leads_with_purchases.iterrows():
-                        try:
-                            # Map dataframe columns to the API model structure
-                            mkt_lead_data = {
-                                # Lead fields
-                                "lead_id": str(row["ID do lead"]) if pd.notna(row["ID do lead"]) else None,
-                                "lead_email": row["Email do lead"] if pd.notna(row["Email do lead"]) else None,
-                                "lead_phone": row["Telefone do lead"] if pd.notna(row["Telefone do lead"]) else None,
-                                "lead_message": row["Mensagem"] if pd.notna(row["Mensagem"]) else None,
-                                "lead_store": row["Unidade do lead"] if pd.notna(row["Unidade do lead"]) else None,
-                                "lead_source": row["Fonte"] if pd.notna(row["Fonte"]) else None,
-                                "lead_entry_day": int(row["Dia da entrada"].day) if pd.notna(row["Dia da entrada"]) else None,
-                                "lead_mkt_source": row["Source"] if pd.notna(row["Source"]) else None,
-                                "lead_mkt_medium": row["Medium"] if pd.notna(row["Medium"]) else None,
-                                "lead_mkt_term": row["Term"] if pd.notna(row["Term"]) else None,
-                                "lead_mkt_content": row["Content"] if pd.notna(row["Content"]) else None,
-                                "lead_mkt_campaign": row["Campaign"] if pd.notna(row["Campaign"]) else None,
-                                "lead_month": row["Mês do lead"] if pd.notna(row["Mês do lead"]) else None,
-                                "lead_category": row["Categoria"] if pd.notna(row["Categoria"]) else None,
+                    # Create a database session
+                    db = SessionLocal()
+                    
+                    try:
+                        for index, row in df_leads_with_purchases.iterrows():
+                            try:
+                                from helpers.data import mkt_lead_data
                                 
-                                # Appointment fields
-                                "appointment_date": row["data_agenda"].isoformat() if pd.notna(row["data_agenda"]) else None,
-                                "appointment_procedure": row["procedimento"] if pd.notna(row["procedimento"]) else None,
-                                "appointment_status": row["status"] if pd.notna(row["status"]) else None,
-                                "appointment_store": row["unidade na agenda"] if pd.notna(row["unidade na agenda"]) else None,
+                                # Remove None values to avoid validation errors
+                                mkt_lead_data = {k: v for k, v in mkt_lead_data.items() if v is not None}
                                 
-                                # Sales fields
-                                "sale_cleaned_phone": row["Telefones Limpos"] if pd.notna(row["Telefones Limpos"]) else None,
-                                "sales_phone": row["Telefone(s) do cliente"] if pd.notna(row["Telefone(s) do cliente"]) else None,
-                                "sales_quote_id": str(row["ID orçamento"]) if pd.notna(row["ID orçamento"]) else None,
-                                "sales_date": row["Data venda"].isoformat() if pd.notna(row["Data venda"]) else None,
-                                "sales_store": row["Unidade da venda"] if pd.notna(row["Unidade da venda"]) else None,
-                                "sales_first_quote": str(row["Valor primeiro orçamento"]) if pd.notna(row["Valor primeiro orçamento"]) else None,
-                                "sales_total_bought": str(row["Total comprado pelo cliente"]) if pd.notna(row["Total comprado pelo cliente"]) else None,
-                                "sales_number_of_quotes": str(row["Número de orçamentos do cliente"]) if pd.notna(row["Número de orçamentos do cliente"]) else None,
-                                "sales_day": int(row["Dia"]) if pd.notna(row["Dia"]) else None,
-                                "sales_month": row["Mês da venda"] if pd.notna(row["Mês da venda"]) else None,
-                                "sales_day_of_week": row["Dia da Semana"] if pd.notna(row["Dia da Semana"]) else None,
-                                "sales_purchased": bool(row["comprou"]) if pd.notna(row["comprou"]) else False,
-                                "sales_interval": int(row["intervalo da compra"]) if pd.notna(row["intervalo da compra"]) else None
-                            }
-                            
-                            # Remove None values to avoid validation errors
-                            mkt_lead_data = {k: v for k, v in mkt_lead_data.items() if v is not None}
-                            
-                            # Debug: Show first row data being sent
-                            if index == 0:
-                                st.write("Dados que serão enviados (primeira linha):", mkt_lead_data)
-                            
-                            # Send data to API
-                            st.write(f"Enviando registro {index+1} para API...")
-                            response = requests.post(api_url, json=mkt_lead_data)
-                            
-                            # Debug: Show API response for the first item
-                            if index == 0:
-                                st.write(f"Resposta da API (status: {response.status_code}):", response.text)
-                            
-                            if response.status_code == 200 or response.status_code == 201:
+                                # Debug: Show first row data being sent
+                                if index == 0:
+                                    st.write("Dados que serão inseridos no banco (primeira linha):", mkt_lead_data)
+                                
+                                # Create a new MktLead instance
+                                st.write(f"Inserindo registro {index+1} no banco de dados...")
+                                
+                                # Check if record with this lead_id already exists
+                                existing_lead = db.query(MktLead).filter(MktLead.lead_id == mkt_lead_data.get("lead_id")).first()
+                                
+                                if existing_lead:
+                                    # Update existing record
+                                    for key, value in mkt_lead_data.items():
+                                        setattr(existing_lead, key, value)
+                                    db.commit()
+                                    st.write(f"Registro {index+1} atualizado com sucesso.")
+                                else:
+                                    # Create new record
+                                    mkt_lead = MktLead(**mkt_lead_data)
+                                    db.add(mkt_lead)
+                                    db.commit()
+                                    st.write(f"Registro {index+1} inserido com sucesso.")
+                                
                                 saved_count += 1
-                            else:
-                                error_msg = f"Erro ao salvar registro {index+1}: Status {response.status_code} - {response.text}"
+                                
+                            except SQLAlchemyError as e:
+                                db.rollback()  # Rollback on error
+                                error_msg = f"Erro de banco de dados ao salvar registro {index+1}: {str(e)}"
                                 errors.append(error_msg)
                                 st.error(error_msg)  # Show error immediately
                                 logging.error(error_msg)
-                        
-                        except Exception as e:
-                            error_msg = f"Erro no processamento do registro {index+1}: {str(e)}"
-                            errors.append(error_msg)
-                            st.error(error_msg)  # Show error immediately
-                            logging.error(error_msg)
-                        
-                        # Update progress
-                        progress = int((index + 1) / total_rows * 100)
-                        progress_bar.progress(progress)
-                        status_text.text(f"Processados {index+1} de {total_rows} registros...")
+                                
+                            except Exception as e:
+                                db.rollback()  # Rollback on error
+                                error_msg = f"Erro no processamento do registro {index+1}: {str(e)}"
+                                errors.append(error_msg)
+                                st.error(error_msg)  # Show error immediately
+                                logging.error(error_msg)
+                            
+                            # Update progress
+                            progress = int((index + 1) / total_rows * 100)
+                            progress_bar.progress(progress)
+                            status_text.text(f"Processados {index+1} de {total_rows} registros...")
+                    
+                    finally:
+                        # Always close the db session
+                        db.close()
                     
                     # Show results
                     if saved_count == total_rows:
