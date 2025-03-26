@@ -47,7 +47,7 @@ class Lead(LeadBase):
     updated_at: Optional[datetime]
 
     class Config:
-        orm_mode = True
+        from_attributes = True
         
 # Schema for Lead list response
 class LeadList(BaseModel):
@@ -55,4 +55,4 @@ class LeadList(BaseModel):
     leads: list[Lead]
     
     class Config:
-        orm_mode = True
+        from_attributes = True

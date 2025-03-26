@@ -10,6 +10,10 @@ from .sale import (
     get_sale, get_sales, create_sale, update_sale, delete_sale,
     get_sales_count, get_total_sales_value, get_sales_by_unit, get_sales_by_seller
 )
+from .mkt_lead import (
+    get_mkt_lead, get_mkt_leads, create_mkt_lead, update_mkt_lead, delete_mkt_lead,
+    get_mkt_leads_count, get_mkt_leads_by_source, get_mkt_leads_by_status
+)
 
 __all__ = [
     # Lead operations
@@ -22,5 +26,9 @@ __all__ = [
     
     # Sale operations
     "get_sale", "get_sales", "create_sale", "update_sale", "delete_sale",
-    "get_sales_count", "get_total_sales_value", "get_sales_by_unit", "get_sales_by_seller"
+    "get_sales_count", "get_total_sales_value", "get_sales_by_unit", "get_sales_by_seller",
+
+    # Marketing Lead operations
+    "get_mkt_lead", "get_mkt_leads", "create_mkt_lead", "update_mkt_lead", "delete_mkt_lead",
+    "get_mkt_leads_count", "get_mkt_leads_by_source", "get_mkt_leads_by_status"
 ]

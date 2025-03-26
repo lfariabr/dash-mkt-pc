@@ -8,9 +8,11 @@ from .database import engine, get_db, create_tables
 from .schemas.lead import Lead as LeadSchema, LeadCreate, LeadUpdate, LeadList
 from .schemas.appointment import Appointment as AppointmentSchema, AppointmentCreate, AppointmentUpdate, AppointmentList
 from .schemas.sale import Sale as SaleSchema, SaleCreate, SaleUpdate, SaleList
+from .schemas.mkt_lead import MktLead as MktLeadSchema, MktLeadCreate, MktLeadUpdate, MktLeadList
 from .crud import lead as lead_crud
 from .crud import appointment as appointment_crud
 from .crud import sale as sale_crud
+from .crud import mkt_lead as mkt_lead_crud
 
 # Create FastAPI app
 app = FastAPI(
@@ -30,6 +32,50 @@ app.add_middleware(
 
 # Create database tables
 create_tables()
+
+# Mkt Lead endpoints
+@app.post("/mkt-leads/", response_model=MktLeadSchema, tags=["Mkt Leads"])
+def create_mkt_lead(mkt_lead: MktLeadCreate, db: Session = Depends(get_db)):
+    """Create a new mkt lead"""
+    return mkt_lead_crud.create_mkt_lead(db=db, mkt_lead=mkt_lead)
+
+@app.get("/mkt-leads/", response_model=MktLeadList, tags=["Mkt Leads"])
+def read_mkt_leads(
+    skip: int = 0,
+    limit: int = 100,
+    unit: Optional[str] = None,
+    status: Optional[str] = None,
+    source: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """Get all mkt leads with optional filtering"""
+    mkt_leads = mkt_lead_crud.get_mkt_leads(db, skip=skip, limit=limit, unit=unit, status=status, source=source)
+    total = mkt_lead_crud.get_mkt_leads_count(db, unit=unit, status=status, source=source)
+    return {"total": total, "mkt_leads": mkt_leads}
+
+@app.get("/mkt-leads/{mkt_lead_id}", response_model=MktLeadSchema, tags=["Mkt Leads"])
+def read_mkt_lead(mkt_lead_id: int, db: Session = Depends(get_db)):
+    """Get a specific mkt lead by ID"""
+    db_mkt_lead = mkt_lead_crud.get_mkt_lead(db, mkt_lead_id=mkt_lead_id)
+    if db_mkt_lead is None:
+        raise HTTPException(status_code=404, detail="Mkt lead not found")
+    return db_mkt_lead
+
+@app.put("/mkt-leads/{mkt_lead_id}", response_model=MktLeadSchema, tags=["Mkt Leads"])
+def update_mkt_lead(mkt_lead_id: int, mkt_lead: MktLeadUpdate, db: Session = Depends(get_db)):
+    """Update a mkt lead"""
+    db_mkt_lead = mkt_lead_crud.update_mkt_lead(db, mkt_lead_id=mkt_lead_id, mkt_lead=mkt_lead)
+    if db_mkt_lead is None:
+        raise HTTPException(status_code=404, detail="Mkt lead not found")
+    return db_mkt_lead
+
+@app.delete("/mkt-leads/{mkt_lead_id}", tags=["Mkt Leads"])
+def delete_mkt_lead(mkt_lead_id: int, db: Session = Depends(get_db)):
+    """Delete a mkt lead"""
+    success = mkt_lead_crud.delete_mkt_lead(db, mkt_lead_id=mkt_lead_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Mkt lead not found")
+    return {"detail": "Mkt lead deleted successfully"}
 
 # Lead endpoints
 @app.post("/leads/", response_model=LeadSchema, tags=["Leads"])

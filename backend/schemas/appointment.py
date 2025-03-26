@@ -32,7 +32,7 @@ class Appointment(AppointmentBase):
     updated_at: Optional[datetime]
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # Schema for Appointment list response
 class AppointmentList(BaseModel):
@@ -40,4 +40,4 @@ class AppointmentList(BaseModel):
     appointments: list[Appointment]
 
     class Config:
-        orm_mode = True
+        from_attributes = True

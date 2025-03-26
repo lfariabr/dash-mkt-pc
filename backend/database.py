@@ -1,22 +1,58 @@
+import logging
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-import os
 from dotenv import load_dotenv
+import os
 
 load_dotenv()
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# Construct the DB url
-DATABASE_URL = f"postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
+# Determine if we're in development or production mode
+DEV_MODE = os.getenv("DEV_MODE", "True").lower() == "true"
 
-# Create SQLAlchemy engine
-engine = create_engine(DATABASE_URL)
+# Create Base class before engine setup
+Base = declarative_base()
+
+# Default to SQLite in development mode to avoid connection issues
+try:
+    if DEV_MODE:
+        # Use SQLite for development
+        DATABASE_URL = "sqlite:///./database.db"
+        engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+        logger.info("Connected to SQLite database")
+    else:
+        # Use Supabase PostgreSQL for production
+        user = os.getenv("DB_USER", "postgres")
+        password = os.getenv("DB_PASSWORD", "")
+        host = os.getenv("DB_HOST", "")
+        port = os.getenv("DB_PORT", "5432")
+        dbname = os.getenv("DB_NAME", "postgres")
+        
+        # Use credentials directly from .env without modification
+        # For Supabase, the DB_USER should already be in the format "postgres.project_ref"
+        DATABASE_URL = f"postgresql://{user}:{password}@{host}:{port}/{dbname}"
+        
+        # Create engine with appropriate settings for Supabase
+        engine = create_engine(
+            DATABASE_URL,
+            connect_args={
+                "options": "-c statement_timeout=0 -c idle_in_transaction_session_timeout=0"
+            },
+            pool_size=10,
+            max_overflow=10,
+            # Add connection health check
+            pool_pre_ping=True
+        )
+        
+        logger.info(f"Connected to PostgreSQL database at {host}")
+except Exception as e:
+    logger.error(f"Failed to connect to database: {str(e)}")
+    raise
 
 # Create SessionLocal class
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-# Create Base class
-Base = declarative_base()
 
 # Dependency to get DB session
 def get_db():
@@ -26,13 +62,18 @@ def get_db():
     finally:
         db.close()
 
+# Function to create all tables
 def create_tables():
-    """Create all database tables"""
-    # Import models here to avoid circular imports
-    from .models.lead import Lead
-    from .models.appointment import Appointment
-    from .models.sale import Sale
-    
-    print("Creating database tables...")
-    Base.metadata.create_all(bind=engine)
-    print("Database tables created successfully")
+    try:
+        # Import models here to avoid circular imports
+        from .models.lead import Lead
+        from .models.appointment import Appointment
+        from .models.sale import Sale
+        from .models.mkt_lead import MktLead
+        
+        Base.metadata.create_all(bind=engine)
+        logger.info("Database tables created successfully")
+    except Exception as e:
+        logger.error(f"Error creating database tables: {str(e)}")
+        if not DEV_MODE:  # Only raise in production mode
+            raise

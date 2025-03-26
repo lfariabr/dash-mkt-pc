@@ -42,7 +42,7 @@ class Sale(SaleBase):
     updated_at: Optional[datetime]
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # Schema for Sale list response
 class SaleList(BaseModel):
@@ -50,4 +50,4 @@ class SaleList(BaseModel):
     sales: list[Sale]
 
     class Config:
-        orm_mode = True
+        from_attributes = True
