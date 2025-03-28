@@ -47,7 +47,6 @@ def check_if_lead_has_atendido_status(df_leads_cleaned, df_appointments_comparec
     df_appointments_comparecimentos = df_appointments_comparecimentos.copy()
 
     # Since Leads and Appointments are cleaned, we can check which leads are appointments_comparecimentos
-    # TODO @apt_cleaner
     def eh_comparecimento(row):
         telefone = row['Telefone do lead']
         email = row['Email do lead']
@@ -86,7 +85,6 @@ def check_if_lead_has_other_status(df_leads_nao_atendidos, df_appointments_agend
     df_leads_nao_atendidos = df_leads_nao_atendidos.copy()
     df_appointments_agendamentos = df_appointments_agendamentos.copy()
 
-    # TODO @apt_cleaner
     def eh_agendamento(row):
         telefone = row['Telefone do lead']
         email = row['Email do lead']
