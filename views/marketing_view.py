@@ -7,6 +7,7 @@ import time
 import requests
 import json
 from typing import List, Dict, Any, Optional
+import io
 
 # Support functions
 from data.stores import stores_to_remove
@@ -294,9 +295,23 @@ def load_page_marketing():
 
                 #TODO create new columns. Waiting for Lili's database
                 # Problem of duplicate leads... Valor primeiro orçamento will also be duplicate... need to think about this.
-                
+
                 st.session_state['leads_data'] = df_leads_with_purchases
                 st.dataframe(df_leads_with_purchases, hide_index=True)
+
+                # Create a download button for the Excel file
+                buffer = io.BytesIO()
+                with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+                    df_leads_with_purchases.to_excel(writer, index=False, sheet_name='Leads')
+                    
+                excel_data = buffer.getvalue()
+                today = datetime.now().strftime("%d-%m-%Y")
+                st.download_button(
+                    label="Baixar Excel",
+                    data=excel_data,
+                    file_name=f"df_mkt_{today}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
             
             with st.expander("🔍 Detalhes Dinâmica Marketing:"):
                 tab1, tab2 = st.tabs(["Visão por Categoria", "Visão por Fonte"])
