@@ -75,8 +75,8 @@ A comprehensive analytics dashboard for tracking and analyzing leads, appointmen
 - [X] Implement Fast API Backend
 - [X] Connect with AWS RDS postgresDB
 - [X] Deploy Marketing Analytics dashboard with database integration
-- [ ] Implement advanced filtering and segmentation
-- [ ] Add custom reporting capabilities
+- [X] Implement advanced filtering and segmentation
+- [X] Add custom reporting capabilities
 - [ ] Create automated data quality checks
 
 ### Phase 3: AI/ML Integration

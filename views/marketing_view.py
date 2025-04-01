@@ -388,9 +388,9 @@ def save_data():
     try:
         # Check if data exists in session state
         if 'leads_data' in st.session_state and not st.session_state['leads_data'].empty:
-            from helpers.data_wrestler import save_data_to_db
+            from helpers.data_wrestler import save_data_to_db, save_data_to_db_batch
             
-            success, message = save_data_to_db(st.session_state['leads_data'])
+            success, message = save_data_to_db_batch(st.session_state['leads_data'])
             
             if success:
                 st.success(message)
