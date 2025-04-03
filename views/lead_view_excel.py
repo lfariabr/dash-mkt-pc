@@ -3,7 +3,6 @@ import pandas as pd
 import plotly.express as px
 from pathlib import Path
 from datetime import datetime, timedelta
-import asyncio
 from data.sources import paid_sources, organic_sources
 from data.stores import stores_to_remove
 from data.date_intervals import days_map, available_periods
@@ -18,73 +17,17 @@ from views.leads.leads_grouper import (
                                         groupby_unidade_fonte_paga,
                                         groupby_unidade_fonte_organica
                                     )
-from apiCrm.resolvers.fetch_leadReport import fetch_and_process_lead_report
 
-def load_data(start_date=None, end_date=None, use_api=False):
-    """
-    Load and preprocess leads data.
+def load_data():
+    """Load and preprocess leads data."""
+    leads = 'db/leads.xlsx'
     
-    Args:
-        start_date (str, optional): Start date in YYYY-MM-DD format for API fetch
-        end_date (str, optional): End date in YYYY-MM-DD format for API fetch
-        use_api (bool): Whether to use the API or local Excel file
-        
-    Returns:
-        DataFrame: Processed leads dataframe
-    """
-    if use_api and start_date and end_date:
-        try:
-            # Run the async function using asyncio
-            leads_data = asyncio.run(fetch_and_process_lead_report(start_date, end_date))
-            
-            if not leads_data:
-                st.error("Não foi possível obter dados da API. Usando dados locais.")
-                return load_data(use_api=False)
-            
-            # Convert the API data to a DataFrame
-            df = pd.DataFrame(leads_data)
-            
-            # Map API field names to match the excel structure
-            df = df.rename(columns={
-                'id': 'ID do lead',
-                'name': 'Nome',
-                'email': 'Email',
-                'telephone': 'Telefone',
-                'message': 'Mensagem',
-                'createdAt': 'Dia da entrada',
-                'store': 'Unidade',
-                'source': 'Fonte',
-                'status': 'Status',
-                'utmSource': 'utmSource',
-                'utmMedium': 'utmMedium',
-                'utmTerm': 'utmTerm',
-                'utmContent': 'Content',
-                'utmCampaign': 'utmCampaign',
-                'searchTerm': 'searchTerm'
-            })
-            
-            # Convert createdAt to datetime
-            df['Dia da entrada'] = pd.to_datetime(df['Dia da entrada'])
-            
-            # Format the date for 'Dia' column (single step)
-            df['Dia'] = df['Dia da entrada'].dt.strftime('%d-%m-%Y')
-            
-            st.success(f"Dados obtidos com sucesso via API: {len(df)} leads carregados.")
-            
-        except Exception as e:
-            st.error(f"Erro ao buscar dados da API: {str(e)}")
-            return load_data(use_api=False)
-    else:
-        # Use the original Excel data source
-        leads = 'db/leads.xlsx'
-        df = pd.read_excel(leads)
-        
-    # Apply common transformations
+    #TODO make this part pull data from apiCrm/resolvers/fetch_leadReport
+    # BACK AT THIS BABY
+
+    df = pd.read_excel(leads)
     df = df.loc[~df['Unidade'].isin(stores_to_remove)]
-    
-    # Only apply date transformation if not using API (API data already has the right format)
-    if not use_api:
-        df = transform_date_from_leads(df)
+    df = transform_date_from_leads(df)
     
     return df
 
@@ -100,48 +43,14 @@ def load_page_leads():
     
 
     st.title("📊 10 - Leads")
+    df_leads = load_data()
     
-    # Add date range selectors in the sidebar
     st.sidebar.header("Filtros")
-    
-    # Date range selector
-    use_date_range = st.sidebar.checkbox("Usar intervalo de datas personalizado", False)
-    
-    use_api = False
-    start_date = None
-    end_date = None
-    
-    if use_date_range:
-        col1, col2 = st.sidebar.columns(2)
-        with col1:
-            start_date = st.date_input(
-                "Data Inicial",
-                value=datetime.now() - timedelta(days=30),
-                max_value=datetime.now()
-            ).strftime('%Y-%m-%d')
-        with col2:
-            end_date = st.date_input(
-                "Data Final",
-                value=datetime.now(),
-                max_value=datetime.now()
-            ).strftime('%Y-%m-%d')
-        
-        # Add button to fetch data from API
-        use_api = st.sidebar.checkbox("Usar API para buscar dados", True)
-        
-        if use_api:
-            st.sidebar.info("Os dados serão buscados da API usando o intervalo de datas selecionado.")
-    
-    # Load data with or without API based on selections
-    df_leads = load_data(start_date, end_date, use_api)
-    
-    # Continue with existing time filter if not using date range
-    if not use_date_range:
-        time_filter = st.sidebar.selectbox(
-            "Período", available_periods
-        )
-        if time_filter != "Todos os dados":
-            df_leads = create_time_filtered_df(df_leads, days_map[time_filter])
+    time_filter = st.sidebar.selectbox(
+        "Período", available_periods
+    )
+    if time_filter != "Todos os dados":
+        df_leads = create_time_filtered_df(df_leads, days_map[time_filter])
     
     unidades = ["Todas"] + sorted(df_leads['Unidade'].unique().tolist())
     selected_store = st.sidebar.selectbox("Unidade", unidades)
@@ -168,7 +77,7 @@ def load_page_leads():
             labels={'ID do lead': 'Quantidade de Leads', 'Dia': 'Dia do mês'},
             markers=True
         )
-        st.plotly_chart(fig_day, use_container_width=True, key='fig_day')
+        st.plotly_chart(fig_day, use_container_width=True)
     
     with col2:
         groupby_leads_by_store = groupby_leads_por_unidade(df_leads)
@@ -180,7 +89,7 @@ def load_page_leads():
             title='Leads por Unidade',
             labels={'ID do lead': 'Quantidade de Leads', 'Unidade': 'Unidade'}
         )
-        st.plotly_chart(fig_store, use_container_width=True, key='fig_store')
+        st.plotly_chart(fig_store, use_container_width=True)
     
     #######
     # Div 2: Distribuição de Leads por Fonte e Distribuição de Leads por Status
@@ -196,7 +105,7 @@ def load_page_leads():
             title='Distribuição de Leads por Fonte',
             hole=0.4
         )
-        st.plotly_chart(fig_source, use_container_width=True, key='fig_source')
+        st.plotly_chart(fig_source, use_container_width=True)
     
     with col2:
         groupby_leads_by_status = groupby_leads_por_status(df_leads)
@@ -208,7 +117,7 @@ def load_page_leads():
             title='Distribuição de Leads por Status',
             hole=0.4
         )
-        st.plotly_chart(fig_status, use_container_width=True, key='fig_status')
+        st.plotly_chart(fig_status, use_container_width=True)
     
     #######
     # Div 3: Distribuição de Leads por Categoria e Dia
@@ -233,7 +142,7 @@ def load_page_leads():
         color='Categoria',
         title='Distribuição de Leads por Categoria e Dia'
     )
-    st.plotly_chart(fig_category_leads_by_day, use_container_width=True, key='fig_category_leads_by_day')
+    st.plotly_chart(fig_category_leads_by_day, use_container_width=True)
 
     ########
     # Div 4: Distribuição de Leads por Fonte Paga e Orgânica 
@@ -257,7 +166,7 @@ def load_page_leads():
                 title='Leads por Unidade e Fonte',
                 labels={'ID do lead': 'Quantidade de Leads', 'Unidade': 'Unidade'}
             )
-            st.plotly_chart(fig_paid_source, use_container_width=True, key='fig_paid_source')    
+            st.plotly_chart(fig_paid_source, use_container_width=True)    
 
         with col2:
             # Pizza graphic with leads by paid source
@@ -268,7 +177,7 @@ def load_page_leads():
                 title='Distribuição de Leads por Fonte Paga',
                 hole=0.4
             )
-            st.plotly_chart(fig_paid_source_pie, use_container_width=True, key='fig_paid_source_pie')
+            st.plotly_chart(fig_paid_source_pie, use_container_width=True)
 
         pivot_store_by_paid_source = (
             groupby_store_by_paid_source.pivot_table(
@@ -296,7 +205,7 @@ def load_page_leads():
                 title='Leads por Unidade e Fonte',
                 labels={'ID do lead': 'Quantidade de Leads', 'Unidade': 'Unidade'}
             )
-            st.plotly_chart(fig_organic_source, use_container_width=True, key='fig_organic_source')    
+            st.plotly_chart(fig_organic_source, use_container_width=True)    
 
         with col2:
             # Pizza graphic with leads by organic source
@@ -307,7 +216,7 @@ def load_page_leads():
                 title='Distribuição de Leads por Fonte Orgânica',
                 hole=0.4
             )
-            st.plotly_chart(fig_organic_source_pie, use_container_width=True, key='fig_organic_source_pie')
+            st.plotly_chart(fig_organic_source_pie, use_container_width=True)
 
         pivot_store_by_organic_source = (
             groupby_store_by_organic_source.pivot_table(

@@ -24,7 +24,7 @@ async def fetch_leadReport(session, start_date: str, end_date: str) -> List[Dict
     """
     current_page = 1
     all_leads = []
-    api_url = os.getenv('API_CRM_URL', 'https://open-api.eprocorpo.com.br/graphql')
+    api_url = os.getenv('API_CRM_URL')
     
     # Updated query with non-nullable types (Date!) for date parameters
     query = '''
@@ -70,7 +70,7 @@ async def fetch_leadReport(session, start_date: str, end_date: str) -> List[Dict
     # Try with a single request first to verify schema
     variables = {
         'currentPage': current_page,
-        'perPage': 100,  # Smaller batch size for initial testing
+        'perPage': 50,  # Smaller batch size for initial testing
         'startDate': start_date,
         'endDate': end_date
     }
@@ -116,6 +116,7 @@ async def fetch_leadReport(session, start_date: str, end_date: str) -> List[Dict
             last_page = meta.get('lastPage', 1)
             
             logger.info(f"Successfully fetched page 1/{last_page}, got {len(leads_data)} leads")
+            logger.info("...")
             
             # If we have more pages, fetch them
             if last_page > 1:

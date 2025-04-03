@@ -305,11 +305,11 @@ def load_page_marketing():
                     df_leads_with_purchases.to_excel(writer, index=False, sheet_name='Leads')
                     
                 excel_data = buffer.getvalue()
-                today = datetime.now().strftime("%d-%m-%Y")
+                yesterday = (datetime.now() - timedelta(days=1)).strftime("%d-%m-%Y")
                 st.download_button(
                     label="Baixar Excel",
                     data=excel_data,
-                    file_name=f"df_mkt_{today}.xlsx",
+                    file_name=f"df_mkt_{yesterday}.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 )
             
