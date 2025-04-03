@@ -21,6 +21,8 @@ from views.leads.leads_grouper import (
 def load_data():
     """Load and preprocess leads data."""
     leads = 'db/leads.xlsx'
+    
+    #TODO make this part pull data from apiCrm/resolvers/fetch_leadReport
 
     df = pd.read_excel(leads)
     df = df.loc[~df['Unidade'].isin(stores_to_remove)]

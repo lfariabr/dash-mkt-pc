@@ -70,7 +70,7 @@ async def fetch_leadReport(session, start_date: str, end_date: str) -> List[Dict
     # Try with a single request first to verify schema
     variables = {
         'currentPage': current_page,
-        'perPage': 400,  # Smaller batch size for initial testing
+        'perPage': 100,  # Smaller batch size for initial testing
         'startDate': start_date,
         'endDate': end_date
     }
