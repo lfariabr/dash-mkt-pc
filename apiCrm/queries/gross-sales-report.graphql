@@ -1,0 +1,56 @@
+query ($filters: GrossSalesReportFilters!) {
+    grossSalesReport(filters: $filters) {
+        data {
+            id
+            isFree
+            createdAt
+            status
+            statusLabel
+            isReseller
+            customerSignedAt
+            store {
+                name
+            }
+            createdBy {
+                name
+            }
+            evaluations {
+                employee {
+                    name
+                }
+            }
+            bill {
+                chargableTotal
+
+                items {
+                    amount
+                    quantity
+                    discountAmount
+                    discountPercentage
+                    description
+
+                    procedure {
+                        groupLabel
+                    }
+                }
+            }
+
+            customer {
+                name
+                email
+                taxvat
+                taxvatFormatted
+                source {
+                    title
+                }
+                telephones {
+                    number
+                }
+                birthdate
+                occupation {
+                    title
+                }
+            }
+        }
+    }
+}

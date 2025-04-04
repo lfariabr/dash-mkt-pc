@@ -1,0 +1,47 @@
+query ($filters: PendingQuotesReportFilters!) {
+    pendingQuotesReport(filters: $filters) {
+        data {
+            id
+            createdAt
+            statusLabel
+            isReseller
+            subtotal
+            discountAmount
+            total
+            comments
+            expirationDate
+
+            store {
+                name
+            }
+
+            customer {
+                name
+                email
+                primaryTelephone
+                taxvatFormatted
+                addressLine
+                address {
+                    street
+                    number
+                    additional
+                    neighborhood
+                    city
+                    state {
+                        name
+                    }
+                    postcode
+                }
+            }
+
+            createdBy {
+                name
+            }
+
+            procedures {
+                name
+                groupLabel
+            }
+        }
+    }
+}

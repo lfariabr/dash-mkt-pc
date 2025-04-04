@@ -1,0 +1,68 @@
+query ($filters: SalesByPaymentMethodReportFilters!) {
+    salesByPaymentMethodReport(filters: $filters) {
+        data {
+            amount
+            dueAt
+            paidAmount
+            isPaid
+
+            bill {
+                quote {
+                    comments
+                    createdAt
+                    customerSignedAt
+                    discountAmount
+                    id
+                    isReseller
+                    statusLabel
+                    subtotal
+
+                    store {
+                        name
+                    }
+
+                    createdBy {
+                        name
+                    }
+
+                    cancelledBy {
+                        name
+                    }
+                }
+
+                items {
+                    description
+
+                    procedure {
+                        groupLabel
+                    }
+                }
+
+                customer {
+                    addressLine
+                    email
+                    name
+                    taxvatFormatted
+
+                    address {
+                        street
+                        number
+                        additional
+                        neighborhood
+                        city
+                        postcode
+
+                        state {
+                            name
+                        }
+                    }
+                }
+            }
+
+            paymentMethod {
+                displayAmountOnReport
+                name
+            }
+        }
+    }
+}

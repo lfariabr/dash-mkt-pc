@@ -1,0 +1,76 @@
+query ($filters: AppointmentsReportFilters!) {
+    appointmentsReport(filters: $filters) {
+        data {
+            afterPhotoUrl
+            batchPhotoUrl
+            beforePhotoUrl
+            endDate
+            id
+            startDate
+            updatedAt
+
+            status {
+                code
+                label
+            }
+
+            oldestParent {
+                createdAt
+
+                createdBy {
+                    name
+
+                    group {
+                        name
+                    }
+                }
+            }
+
+            customer {
+                addressLine
+                email
+                id
+                name
+                taxvatFormatted
+
+                telephones {
+                    number
+                }
+
+                source {
+                    title
+                }
+            }
+
+            store {
+                name
+            }
+
+            procedure {
+                groupLabel
+                name
+            }
+
+            employee {
+                name
+            }
+
+            comments {
+                comment
+            }
+
+            updatedBy {
+                name
+            }
+
+            latestProgressComment {
+                comment
+                createdAt
+
+                user {
+                    name
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,48 @@
+query ($filters: LeadsReportFilters!) {
+    leadsReport(filters: $filters) {
+        data {
+            createdAt
+            device
+            email
+            gclid
+            id
+            message
+            name
+            page
+            referer
+            searchTerm
+            telephone
+            utmCampaign
+            utmContent
+            utmMedium
+            utmSource
+            utmTerm
+
+            region {
+                name
+            }
+
+            store {
+                name
+            }
+
+            source {
+                title
+            }
+
+            status {
+                label
+            }
+
+            procedureGroup {
+                label
+            }
+
+            messages {
+                id
+                message
+                createdAt
+            }
+        }
+    }
+}

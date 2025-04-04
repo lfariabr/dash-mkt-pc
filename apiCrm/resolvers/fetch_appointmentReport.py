@@ -1,3 +1,8 @@
+"""
+cd /Users/luisfaria/Desktop/sEngineer/dash
+python -m apiCrm.tests.fetch_appointmentReport_test
+"""
+
 import asyncio
 import logging
 from typing import List, Dict
@@ -26,59 +31,94 @@ async def fetch_appointmentReport(session, start_date: str, end_date: str) -> Li
     all_appointments = []
     api_url = os.getenv('API_CRM_URL', 'https://open-api.queromeubotox.com.br/graphql')
 
-     # Updated query with non-nullable types (Date!) for date parameters
+    # Updated query with non-nullable types (Date!) for date parameters
     query = '''
     query AppointmentsReport($start: Date!, $end: Date!) {
-  appointmentsReport(
-    filters: { startDateRange: { start: $start, end: $end } }
-    pagination: { currentPage: 1, perPage: 100 }
-  ) {
-    data {
-      id
-      customer {
-        id
-        name
-        telephones {
-          number
-        }
-        email
-      }
-      store {
-        name
-      }
-      procedure {
-        name
-      }
-      employee {
-        name
-      }
-      startDate
-      status {
-        label
-      }
-      updatedBy {
-        name
-        createdAt
-        group {
-          name
-          createdBy {
-            name
-            group {
-                  name
+        appointmentsReport(
+            filters: { startDateRange: { start: $start, end: $end } }
+            pagination: { currentPage: 1, perPage: 100 }
+        ) {
+            data {
+            afterPhotoUrl
+            batchPhotoUrl
+            beforePhotoUrl
+            endDate
+            id
+            startDate
+            updatedAt
+
+            status {
+                code
+                label
             }
-          }
+
+            oldestParent {
+                createdAt
+
+                createdBy {
+                    name
+
+                    group {
+                        name
+                    }
+                }
+            }
+
+            customer {
+                addressLine
+                email
+                id
+                name
+                taxvatFormatted
+
+                telephones {
+                    number
+                }
+
+                source {
+                    title
+                }
+            }
+
+            store {
+                name
+            }
+
+            procedure {
+                groupLabel
+                name
+            }
+
+            employee {
+                name
+            }
+
+            comments {
+                comment
+            }
+
+            updatedBy {
+                name
+            }
+
+            latestProgressComment {
+                comment
+                createdAt
+
+                user {
+                    name
+                }
+            }
         }
+      meta {
+        currentPage
+        perPage
+        lastPage
+        total
       }
-    }
-    meta {
-      currentPage
-      perPage
-      lastPage
-      total
     }
   }
-}
-'''
+  '''
 
     variables = {
         'start': start_date,  # Changed from 'startDate' to 'start'
@@ -100,41 +140,71 @@ async def fetch_appointmentReport(session, start_date: str, end_date: str) -> Li
         if 'data' in data and 'appointmentsReport' in data['data']:
             appointments_data = data['data']['appointmentsReport']['data']
             meta = data['data']['appointmentsReport']['meta']
-            
-            # Transform first page of data
+
             transformed_appointments = []
             for appointment in appointments_data:
-                # Check if required fields exist to avoid None errors
+                # Nested objects
                 customer = appointment.get('customer', {}) or {}
                 store = appointment.get('store', {}) or {}
                 procedure = appointment.get('procedure', {}) or {}
                 employee = appointment.get('employee', {}) or {}
                 status = appointment.get('status', {}) or {}
                 updatedBy = appointment.get('updatedBy', {}) or {}
-                updatedBy_group = updatedBy.get('group', {}) or {}
-                updatedBy_group_createdBy = updatedBy_group.get('createdBy', {}) or {}
-                
-                # Format telephones
+                latestProgressComment = appointment.get('latestProgressComment', {}) or {}
+                oldestParent = appointment.get('oldestParent', {}) or {}
+                oldestParent_createdBy = oldestParent.get('createdBy', {}) or {}
+                oldestParent_createdBy_group = oldestParent_createdBy.get('group', {}) or {}
+
+                # Telephones
                 telephones_data = customer.get('telephones', [])
                 telephones = ', '.join([tel.get('number', '') for tel in telephones_data]) if telephones_data else None
-                
+
+                # Comments
+                comments_data = appointment.get('comments', [])
+                comments = ', '.join([c.get('comment', '') for c in comments_data]) if comments_data else None
+
                 transformed_appointment = {
                     'id': appointment.get('id'),
+                    'startDate': appointment.get('startDate'),
+                    'endDate': appointment.get('endDate'),
+                    'updatedAt': appointment.get('updatedAt'),
+                    'beforePhotoUrl': appointment.get('beforePhotoUrl'),
+                    'batchPhotoUrl': appointment.get('batchPhotoUrl'),
+                    'afterPhotoUrl': appointment.get('afterPhotoUrl'),
+                    'status_code': status.get('code'),
+                    'status_label': status.get('label'),
+
+                    # Customer
                     'client_id': customer.get('id'),
                     'name': customer.get('name'),
-                    'telephones': telephones,
                     'email': customer.get('email'),
+                    'telephones': telephones,
+                    'addressLine': customer.get('addressLine'),
+                    'taxvatFormatted': customer.get('taxvatFormatted'),
+                    'source': customer.get('source', {}).get('title'),
+
+                    # Store and procedure
                     'store': store.get('name'),
                     'procedure': procedure.get('name'),
+                    'procedure_groupLabel': procedure.get('groupLabel'),
+
+                    # Employee
                     'employee': employee.get('name'),
-                    'startDate': appointment.get('startDate'),
-                    'status': status.get('label'),
                     'updatedBy_name': updatedBy.get('name'),
-                    'updatedBy_createdAt': updatedBy.get('createdAt'),
-                    'updatedBy_group_name': updatedBy_group.get('name'),
-                    'updatedBy_group_createdBy_name': updatedBy_group_createdBy.get('name')
+                    'comments': comments,
+
+                    # Progress comment
+                    'latest_comment': latestProgressComment.get('comment'),
+                    'latest_comment_createdAt': latestProgressComment.get('createdAt'),
+                    'latest_comment_user': latestProgressComment.get('user', {}).get('name'),
+
+                    # Oldest parent info
+                    'oldestParent_createdAt': oldestParent.get('createdAt'),
+                    'oldestParent_createdBy_name': oldestParent_createdBy.get('name'),
+                    'oldestParent_createdBy_group': oldestParent_createdBy_group.get('name'),
                 }
-                transformed_appointments.append(transformed_appointment)
+
+                transformed_appointments.append(transformed_appointment)  
             
             # Add first page to results
             all_appointments.extend(transformed_appointments)

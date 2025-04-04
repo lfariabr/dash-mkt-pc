@@ -1,3 +1,8 @@
+"""
+cd /Users/luisfaria/Desktop/sEngineer/dash
+python -m apiCrm.tests.fetch_leadReport_test
+"""
+
 import asyncio
 import logging
 from typing import List, Dict
