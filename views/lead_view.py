@@ -96,15 +96,11 @@ def create_time_filtered_df(df, days=None):
     return df
 
 def load_page_leads():
-    """Main function to display leads data."""
-    
+    """Main function to display leads data."""    
 
     st.title("📊 10 - Leads")
     
-    # Add date range selectors in the sidebar
     st.sidebar.header("Filtros")
-    
-    # Date range selector
     use_date_range = st.sidebar.checkbox("Usar intervalo de datas personalizado", False)
     
     use_api = False
@@ -126,16 +122,13 @@ def load_page_leads():
                 max_value=datetime.now()
             ).strftime('%Y-%m-%d')
         
-        # Add button to fetch data from API
         use_api = st.sidebar.checkbox("Usar API para buscar dados", True)
         
         if use_api:
             st.sidebar.info("Os dados serão buscados da API usando o intervalo de datas selecionado.")
     
-    # Load data with or without API based on selections
     df_leads = load_data(start_date, end_date, use_api)
     
-    # Continue with existing time filter if not using date range
     if not use_date_range:
         time_filter = st.sidebar.selectbox(
             "Período", available_periods

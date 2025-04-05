@@ -41,3 +41,33 @@ avaliacao_procedures = [
                         #'RETORNO DE AVALIAÇÃO (ENTREGA EXAMES)',
                         #'RETORNO CIRURGIA PLÁSTICA',
 ]
+
+appointments_api_clean_columns = [
+    'ID agendamento',
+    'ID cliente',
+    'Data',
+    'Status',
+    'Nome cliente',
+    'Email',
+    'Telefone',
+    # 'Endereço',
+    # 'CPF',
+    'Fonte de cadastro do cliente',
+    'Unidade do agendamento',
+    'Procedimento',
+    'Grupo do procedimento',
+    'Prestador',
+    'Grupo da primeira atendente',
+    'Observação (mais recente)', # TODO pending from this on...
+    'Data de atualização',
+    'Atualizado por',
+    'Último comentário',
+    'Data do último comentário',
+    'Usuário do último comentário',
+    'Data do primeiro comentário',
+    'Primeiro comentário',
+    'Antes',
+    'Em processo',
+    'Depois',
+]
+

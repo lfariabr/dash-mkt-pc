@@ -63,3 +63,40 @@ def clean_phone_numbers(df_agd):
     df_agd['Telefones Limpos'] = df_agd['Telefone'].apply(clean_telephone)
 
     return df_agd
+
+def appointment_crm_columns_reorganizer(df_appointments_clean):
+    """
+    Simply reorder the columns exhbited.
+    """
+    new_order = [
+    'ID agendamento',
+    'ID cliente',
+    'Data',
+    'Status',
+    'Nome cliente',
+    'Email',
+    'Telefone',
+    'Endereço',
+    'CPF',
+    'Fonte de cadastro do cliente',
+    'Unidade do agendamento',
+    'Procedimento',
+    'Grupo do procedimento',
+    'Prestador',
+    'Grupo da primeira atendente',
+    'Observação (mais recente)', # TODO pending from this on...
+    'Data de atualização',
+    'Atualizado por',
+    'Último comentário',
+    'Data do último comentário',
+    'Usuário do último comentário',
+    'Data do primeiro comentário',
+    'Primeiro comentário',
+    'Antes',
+    'Em processo',
+    'Depois',
+    ]
+    df_appointments_clean = df_appointments_clean.reindex(columns=new_order)
+    return df_appointments_clean
+    
+    
