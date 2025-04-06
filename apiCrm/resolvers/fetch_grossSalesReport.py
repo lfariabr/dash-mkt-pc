@@ -115,7 +115,7 @@ async def fetch_grossSalesReport(session, start_date: str, end_date: str) -> Lis
     data = await fetch_graphql(session, api_url, query, variables)
 
     if data is None or 'errors' in data:
-        error_msg = data.get('errors', [{'message': 'Unknown error'}])[0]['message'] if data else 'No data returned'
+        error_msg = 'No data returned' if data is None else data.get('errors', [{'message': 'Unknown error'}])[0]['message']
         logger.error(f"Failed initial gross sales fetch: {error_msg}")
         return all_gross_sales  # Return empty list on initial failure
     
@@ -141,19 +141,19 @@ async def fetch_grossSalesReport(session, start_date: str, end_date: str) -> Lis
 
                 # Format evaluations (list of employees)
                 employees = ', '.join([
-                    eval.get('employee', {}).get('name', '') 
+                    (eval.get('employee') or {}).get('name', '') 
                     for eval in evaluations if eval.get('employee')
                 ]) if evaluations else None
 
                 # Format bill items
                 items_descriptions = '; '.join([
-                    f"{item.get('description', '')} (Q:{item.get('quantity')}, V:{item.get('amount')}, D:{item.get('discountAmount')} - {item.get('discountPercentage')}%)"
+                    f"{item.get('description', '')} (Q:{item.get('quantity', '')}, V:{item.get('amount', '')}, D:{item.get('discountAmount', '')} - {item.get('discountPercentage', '')}%)"
                     for item in bill_items
                 ]) if bill_items else None
 
                 # Format group labels from procedures in bill items
                 procedure_group_labels = ', '.join([
-                    item.get('procedure', {}).get('groupLabel', '') 
+                    (item.get('procedure') or {}).get('groupLabel', '') 
                     for item in bill_items if item.get('procedure')
                 ]) if bill_items else None
 
@@ -187,8 +187,8 @@ async def fetch_grossSalesReport(session, start_date: str, end_date: str) -> Lis
                     'taxvatFormatted': customer.get('taxvatFormatted'),
                     'birthdate': customer.get('birthdate'),
                     'telephones': telephones,
-                    'source': customer.get('source', {}).get('title'),
-                    'occupation': customer.get('occupation', {}).get('title'),
+                    'source': (customer.get('source') or {}).get('title'),
+                    'occupation': (customer.get('occupation') or {}).get('title'),
                 }
 
                 transformed_sales.append(transformed_sale)
@@ -231,19 +231,19 @@ async def fetch_grossSalesReport(session, start_date: str, end_date: str) -> Lis
 
                             # Format evaluations (list of employees)
                             employees = ', '.join([
-                                eval.get('employee', {}).get('name', '') 
+                                (eval.get('employee') or {}).get('name', '') 
                                 for eval in evaluations if eval.get('employee')
                             ]) if evaluations else None
 
                             # Format bill items
                             items_descriptions = '; '.join([
-                                f"{item.get('description', '')} (Q:{item.get('quantity')}, V:{item.get('amount')}, D:{item.get('discountAmount')} - {item.get('discountPercentage')}%)"
+                                f"{item.get('description', '')} (Q:{item.get('quantity', '')}, V:{item.get('amount', '')}, D:{item.get('discountAmount', '')} - {item.get('discountPercentage', '')}%)"
                                 for item in bill_items
                             ]) if bill_items else None
 
                             # Format group labels from procedures in bill items
                             procedure_group_labels = ', '.join([
-                                item.get('procedure', {}).get('groupLabel', '') 
+                                (item.get('procedure') or {}).get('groupLabel', '') 
                                 for item in bill_items if item.get('procedure')
                             ]) if bill_items else None
 
@@ -277,8 +277,8 @@ async def fetch_grossSalesReport(session, start_date: str, end_date: str) -> Lis
                                 'taxvatFormatted': customer.get('taxvatFormatted'),
                                 'birthdate': customer.get('birthdate'),
                                 'telephones': telephones,
-                                'source': customer.get('source', {}).get('title'),
-                                'occupation': customer.get('occupation', {}).get('title'),
+                                'source': (customer.get('source') or {}).get('title'),
+                                'occupation': (customer.get('occupation') or {}).get('title'),
                             }
                             page_transformed.append(transformed_sale)
                         
