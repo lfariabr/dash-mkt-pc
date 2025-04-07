@@ -14,3 +14,4 @@ def graphic_leads_by_day(df_leads):
             markers=True
         )
     st.plotly_chart(fig_day, use_container_width=True)
+
