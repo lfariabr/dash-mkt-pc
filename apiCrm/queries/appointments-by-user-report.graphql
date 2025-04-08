@@ -1,0 +1,13 @@
+query ($filters: AppointmentsByUserReportFilters!) {
+    appointmentsByUserReport(filters: $filters) {
+        data {
+            name
+            shiftNumber
+            countByProcedureGroup {
+                code
+                label
+            }
+            appointmentsCount
+        }
+    }
+}

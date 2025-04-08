@@ -1,0 +1,15 @@
+query ($filters: LeadsByUserReportFilters!) {
+    leadsByUserReport(filters: $filters) {
+        data {
+            name
+            shiftNumber
+            messagesCount
+            uniqueMessagesCount
+            messagesCountByStatus {
+                code
+                label
+            }
+            successRate
+        }
+    }
+}

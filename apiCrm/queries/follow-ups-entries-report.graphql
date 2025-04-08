@@ -1,0 +1,9 @@
+query ($filters: FollowUpEntriesReportFilters!) {
+    followUpEntriesReport(filters: $filters) {
+        data {
+            customerIds
+            followUpsCount
+            name
+        }
+    }
+}
