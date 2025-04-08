@@ -4,42 +4,46 @@ from views.appointments_view import load_page_appointments
 from views.sales_view import load_page_sales
 from views.marketing_view import load_page_marketing
 from views.mkt_leads_view import load_page_mkt_leads
+from views.leadsByUserReport_view import load_page_leadsByUser
 
 st.set_page_config(
-    page_title="Dash Pró-Corpo",
+    page_title="Pró-Corpo BI",
     page_icon="📊",
     layout="wide"
 )
 
 def main():
-    # Sidebar
+    # Define the menu structure
+    menu_structure = {
+        "Marketing": {
+            "1 - Funil": load_page_marketing,
+            "2 - Histórico": load_page_mkt_leads,
+        },
+        "Dashboard": {
+            "1 - Leads": load_page_leads,
+            "2 - Agendamentos": load_page_appointments,
+            "3 - Vendas": load_page_sales,
+        },
+        "COC": {
+            "1 - Puxada de Leads": load_page_leadsByUser,
+        }
+    }
+    
+    # Sidebar with two-level selection
     st.sidebar.title("Menu")
-    page = st.sidebar.selectbox(
-        "Selecione a página",
-        [
-        "0 - Marketing",
-        "1 - Marketing Leads",
-        "2 - Vendas",
-        "10 - Leads",
-        "11 - Agendamentos"
-        ]
-    )
     
-    if page == "0 - Marketing":
-        load_page_marketing()
+    # First level - Select category
+    category = st.sidebar.radio("Selecione a categoria", list(menu_structure.keys()))
     
-    elif page == "1 - Marketing Leads":
-        load_page_mkt_leads()
+    # Second level - Select page within category
+    st.sidebar.markdown("---")
+    st.sidebar.subheader(f"Páginas - {category}")
     
-    elif page == "2 - Vendas":
-        load_page_sales()
-
-    elif page == "11 - Agendamentos":
-        load_page_appointments()
+    pages = list(menu_structure[category].keys())
+    selected_page = st.sidebar.radio("Selecione a página", pages, key="page_selector")
     
-    elif page == "10 - Leads":
-        load_page_leads()
-    
+    # Load the selected page
+    menu_structure[category][selected_page]()
     
 if __name__ == "__main__":
     main()

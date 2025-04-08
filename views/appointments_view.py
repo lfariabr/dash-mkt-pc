@@ -103,7 +103,7 @@ def create_time_filtered_df(df, days=None):
 def load_page_appointments():
     """Main function to display leads data."""
     
-    st.title("📊 11 - Agendamentos")
+    st.title("📊 2 - Agendamentos")
 
     st.sidebar.header("Filtros")
     # TODO replace this with sidebar_api

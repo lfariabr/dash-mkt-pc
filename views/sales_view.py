@@ -90,7 +90,7 @@ def create_time_filtered_df(df, days=None):
 def load_page_sales():
     """Main function to display leads data."""
     
-    st.title("📊 11 - Vendas")
+    st.title("📊 3 - Vendas")
 
     st.sidebar.header("Filtros")
     use_date_range = st.sidebar.checkbox("Usar intervalo de datas personalizado", False)
