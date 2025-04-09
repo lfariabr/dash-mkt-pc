@@ -10,6 +10,7 @@ from .fetch_graphql import fetch_graphql
 from dotenv import load_dotenv
 import os
 from datetime import datetime
+import streamlit as st
 
 load_dotenv()
 

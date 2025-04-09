@@ -16,13 +16,6 @@ def load_data(start_date=None, end_date=None):
         st.warning("Por favor, selecione um intervalo de datas.")
         return pd.DataFrame()
 
-
-def create_time_filtered_df(df, days=None):
-    if days:
-        cutoff_date = datetime.now() - timedelta(days=days)
-        return df[df['Dia da entrada'] >= cutoff_date]
-    return df
-
 def load_page_leadsByUser():
     """Main function to display leads by user data."""
     st.title("📊 1 - Puxada de Leads")
@@ -54,6 +47,10 @@ def load_page_leadsByUser():
         # Treating data columns:
         leadsByUserColumns = ['name', 'messages_count']
         df_leadsByUser = df_leadsByUser[leadsByUserColumns]
+        df_leadsByUser = df_leadsByUser.rename(columns={
+            'name': 'Atendente',
+            'messages_count': 'Leads Puxados'
+        })
         df_leadsByUser = df_leadsByUser.reset_index(drop=True)
         
-        st.dataframe(df_leadsByUser)
+        st.dataframe(df_leadsByUser, hide_index=True)
