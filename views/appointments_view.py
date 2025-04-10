@@ -63,7 +63,7 @@ def load_data(start_date=None, end_date=None, use_api=False):
                 'oldestParent_createdBy_group': 'Grupo da primeira atendente',
                 'comments': 'Observação (mais recente)', # TODO pending from this on...
                 'updatedAt': 'Data de atualização',
-                'updatedBy_name': 'Atualizado por',
+                'updatedBy': 'Atualizado por',
                 'latest_comment': 'Último comentário',
                 'latest_comment_createdAt': 'Data do último comentário',
                 'latest_comment_user': 'Usuário do último comentário',
@@ -131,11 +131,6 @@ def load_page_appointments():
         ########
         # Header
         header_appointments(df_appointments)
-    
-        # Add defensive checks before filtering
-        if 'status' not in df_appointments.columns or 'Procedimento' not in df_appointments.columns:
-            st.error("Colunas necessárias para filtros não encontradas no dataframe. Verifique o mapeamento de colunas.")
-            return
             
         df_appointments['Data'] = pd.to_datetime(df_appointments['Data']).dt.date
         
@@ -229,7 +224,7 @@ def load_page_appointments():
         st.dataframe(df_appointments_today_by_day_and_store)
 
         # DEBUGGING:
-        df_appointments_clean = df_appointments[appointments_api_clean_columns]
+        df_appointments_clean = df_appointments[appointments_api_clean_columns]        
         df_appointments_clean = appointment_crm_columns_reorganizer(df_appointments_clean)
         st.write("Debugging: df_appointments")
         st.dataframe(df_appointments_clean)

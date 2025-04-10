@@ -72,7 +72,7 @@ def appointment_crm_columns_reorganizer(df_appointments_clean):
     'ID agendamento',
     'ID cliente',
     'Data',
-    'Status',
+    'status',
     'Nome cliente',
     'Email',
     'Telefone',

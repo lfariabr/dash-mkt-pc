@@ -197,6 +197,7 @@ async def fetch_appointmentReport(session, start_date: str, end_date: str) -> Li
                     # Map fields to the expected column names for the UI, with default values
                     transformed_appointment = {
                         'id': appointment.get('id', ''),
+                        'client_id': customer.get('id', ''),
                         'name': customer.get('name', ''),
                         'telephones': telephones,
                         'email': customer.get('email', ''),
@@ -292,6 +293,7 @@ async def fetch_appointmentReport(session, start_date: str, end_date: str) -> Li
                                         
                                         transformed_appointment = {
                                             'id': appointment.get('id', ''),
+                                            'client_id': customer.get('id', ''),
                                             'name': customer.get('name', ''),
                                             'telephones': telephones,
                                             'email': customer.get('email', ''),
