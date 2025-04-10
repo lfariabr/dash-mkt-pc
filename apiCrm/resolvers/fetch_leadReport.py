@@ -29,11 +29,11 @@ async def fetch_leadReport(session, start_date: str, end_date: str) -> List[Dict
     """
     current_page = 1
     all_leads = []
-    api_url = os.getenv('API_CRM_URL')
+    api_url = os.getenv('API_CRM_URL', 'https://open-api.eprocorpo.com.br/graphql')
     
     # Updated query with non-nullable types (Date!) for date parameters
     query = '''
-    query LeadsReport($currentPage: Int!, $perPage: Int!, $startDate: Date!, $endDate: Date!) {
+    query LeadsReport($startDate: Date!, $endDate: Date!, $currentPage: Int!, $perPage: Int!) {
         leadsReport(
             filters: { createdAtRange: { start: $startDate, end: $endDate } }
             pagination: { currentPage: $currentPage, perPage: $perPage }
@@ -70,58 +70,36 @@ async def fetch_leadReport(session, start_date: str, end_date: str) -> List[Dict
     }
     '''
 
-    logger.info(f"Attempting to fetch leads from {start_date} to {end_date}")
-    
-    # Try with a single request first to verify schema
     variables = {
-        'currentPage': current_page,
-        'perPage': 50,  # Smaller batch size for initial testing
         'startDate': start_date,
-        'endDate': end_date
+        'endDate': end_date,
+        'currentPage': current_page,
+        'perPage': 400
     }
+
+    logger.info(f"Attempting to fetch leads from {start_date} to {end_date}")
     
     data = await fetch_graphql(session, api_url, query, variables)
     
     if data is None or 'errors' in data:
         error_msg = data.get('errors', [{'message': 'Unknown error'}])[0]['message'] if data else 'No data returned'
-        logger.error(f"Failed initial leads fetch: {error_msg}")
+        logger.error(f"Failed initial leads report fetch: {error_msg}")
         return all_leads  # Return empty list on initial failure
     
-    # If we got here, the query structure works
     try:
-        # Process first page
         if 'data' in data and 'leadsReport' in data['data']:
+            # Process first page
             leads_data = data['data']['leadsReport']['data']
             meta = data['data']['leadsReport']['meta']
             
             # Transform first page of data
-            transformed_leads = []
-            for lead in leads_data:
-                transformed_lead = {
-                    'id': lead.get('id'),
-                    'name': lead.get('name'),
-                    'email': lead.get('email'),
-                    'telephone': lead.get('telephone'),
-                    'message': lead.get('message'),
-                    'createdAt': lead.get('createdAt'),
-                    'store': lead.get('store', {}).get('name') if lead.get('store') else None,
-                    'source': lead.get('source', {}).get('title') if lead.get('source') else None,
-                    'status': lead.get('status', {}).get('label') if lead.get('status') else None,
-                    'utmSource': lead.get('utmSource'),
-                    'utmMedium': lead.get('utmMedium'),
-                    'utmTerm': lead.get('utmTerm'),
-                    'utmContent': lead.get('utmContent'),
-                    'utmCampaign': lead.get('utmCampaign'),
-                    'searchTerm': lead.get('searchTerm')
-                }
-                transformed_leads.append(transformed_lead)
-            
-            all_leads.extend(transformed_leads)
+            page_transformed = process_leads_data(leads_data, start_date, end_date)
+            all_leads.extend(page_transformed)
             
             last_page = meta.get('lastPage', 1)
+            total_records = meta.get('total', 0)
             
-            logger.info(f"Successfully fetched page 1/{last_page}, got {len(leads_data)} leads")
-            logger.info("...")
+            logger.info(f"Successfully fetched page 1/{last_page}, got {len(leads_data)} leads out of approximately {total_records}")
             
             # If we have more pages, fetch them
             if last_page > 1:
@@ -129,40 +107,24 @@ async def fetch_leadReport(session, start_date: str, end_date: str) -> List[Dict
                     variables['currentPage'] = page
                     page_data = await fetch_graphql(session, api_url, query, variables)
                     
-                    if not page_data or 'errors' in page_data:
-                        logger.error(f"Error fetching page {page}/{last_page}")
+                    if page_data is None or 'errors' in page_data:
+                        error_msg = page_data.get('errors', [{'message': 'Unknown error'}])[0]['message'] if page_data else 'No data returned'
+                        logger.error(f"Failed to fetch leads on page {page}/{last_page}. Error: {error_msg}")
                         continue
                     
                     if 'data' in page_data and 'leadsReport' in page_data['data']:
                         page_leads = page_data['data']['leadsReport']['data']
                         
                         # Transform data for this page
-                        page_transformed = []
-                        for lead in page_leads:
-                            transformed_lead = {
-                                'id': lead.get('id'),
-                                'name': lead.get('name'),
-                                'email': lead.get('email'),
-                                'telephone': lead.get('telephone'),
-                                'message': lead.get('message'),
-                                'createdAt': lead.get('createdAt'),
-                                'store': lead.get('store', {}).get('name') if lead.get('store') else None,
-                                'source': lead.get('source', {}).get('title') if lead.get('source') else None,
-                                'status': lead.get('status', {}).get('label') if lead.get('status') else None,
-                                'utmSource': lead.get('utmSource'),
-                                'utmMedium': lead.get('utmMedium'),
-                                'utmTerm': lead.get('utmTerm'),
-                                'utmContent': lead.get('utmContent'),
-                                'utmCampaign': lead.get('utmCampaign'),
-                                'searchTerm': lead.get('searchTerm')
-                            }
-                            page_transformed.append(transformed_lead)
-                        
+                        page_transformed = process_leads_data(page_leads, start_date, end_date)
                         all_leads.extend(page_transformed)
+                        
                         logger.info(f"Successfully fetched page {page}/{last_page}, got {len(page_leads)} leads")
+                    else:
+                        logger.error(f"Unexpected API response structure on page {page}: {page_data}")
                     
                     # Add a delay between requests to avoid rate limiting
-                    await asyncio.sleep(2)
+                    await asyncio.sleep(0.5)
         else:
             logger.error(f"Unexpected API response structure: {data}")
     
@@ -171,6 +133,34 @@ async def fetch_leadReport(session, start_date: str, end_date: str) -> List[Dict
     
     logger.info(f"Total leads fetched: {len(all_leads)}")
     return all_leads
+
+def process_leads_data(leads_data, start_date, end_date):
+    """Helper function to process and transform leads data consistently"""
+    transformed_leads = []
+    for lead in leads_data:
+        transformed_lead = {
+            'ID do lead': lead.get('id'),
+            'Nome': lead.get('name'),
+            'E-mail': lead.get('email'),
+            'Telefone': lead.get('telephone'),
+            'Mensagem': lead.get('message'),
+            'Dia da entrada': lead.get('createdAt'),
+            'Unidade': lead.get('store', {}).get('name') if lead.get('store') else None,
+            'Fonte': lead.get('source', {}).get('title') if lead.get('source') else None,
+            'Status': lead.get('status', {}).get('label') if lead.get('status') else None,
+            'utmSource': lead.get('utmSource'),
+            'utmMedium': lead.get('utmMedium'),
+            'utmTerm': lead.get('utmTerm'),
+            'utmContent': lead.get('utmContent'),
+            'utmCampaign': lead.get('utmCampaign'),
+            'searchTerm': lead.get('searchTerm'),
+            'report_start_date': start_date,
+            'report_end_date': end_date,
+            'Dia': datetime.fromisoformat(lead.get('createdAt')).day if lead.get('createdAt') else None
+        }
+        transformed_leads.append(transformed_lead)
+    
+    return transformed_leads
 
 async def fetch_and_process_lead_report(start_date: str, end_date: str) -> List[Dict]:
     """

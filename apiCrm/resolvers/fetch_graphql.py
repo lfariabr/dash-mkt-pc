@@ -37,9 +37,7 @@ async def fetch_graphql(session, url, query, variables):
         "query": query,
         "variables": variables
     }
-    
-    logger.info(f"Making GraphQL request to {url}")
-    
+        
     attempt = 0
     max_attempts = 3
     
@@ -65,7 +63,7 @@ async def fetch_graphql(session, url, query, variables):
                                 logger.error("Authentication failed with fallback token")
                                 return None
                         return None
-                    logger.info(f"Successfully executed GraphQL query")
+                    
                     return data
                 else:
                     response_text = await response.text()

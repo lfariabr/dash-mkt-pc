@@ -20,11 +20,18 @@ from views.appointments.appointments_grouper import (
     groupby_agendamentos_por_dia_pivoted,
 )
 def load_data(start_date=None, end_date=None, use_api=False):
-    """Load and preprocess leads data."""
-    appointments = 'db/appointments.xlsx'
-
-    # TODO Just like what we did @ lead_view.py we're going to adapt the code here too!
-    if use_api and start_date and end_date:
+    """
+    Load and preprocess appointments data.
+    
+    Args:
+        start_date (str, optional): Start date in YYYY-MM-DD format for API fetch
+        end_date (str, optional): End date in YYYY-MM-DD format for API fetch
+        use_api (bool): Whether to use the API or local Excel file
+        
+    Returns:
+        DataFrame: Processed appointments dataframe
+    """
+    if start_date and end_date:
         try:
             # Run the async function using asyncio
             appointments_data = asyncio.run(fetch_and_process_appointment_report(start_date, end_date))
@@ -65,7 +72,6 @@ def load_data(start_date=None, end_date=None, use_api=False):
                 'beforePhotoUrl': 'Antes',
                 'batchPhotoUrl': 'Em processo',
                 'afterPhotoUrl': 'Depois',
-                
             })
             
             # Convert startDate to datetime
@@ -80,16 +86,11 @@ def load_data(start_date=None, end_date=None, use_api=False):
             st.error(f"Erro ao buscar dados da API: {str(e)}")
             return load_data(use_api=False)
     else:
-        # Use the original Excel data source
-        appointments = 'db/appointments.xlsx'
-        df = pd.read_excel(appointments)
+        st.warning("Por favor, selecione um intervalo de datas.")
+        return pd.DataFrame()
         
     # Apply common transformations
-    df = df.loc[~df['Unidade do agendamento'].isin(stores_to_remove)]
-
-    # Only apply date transformation if not using API
-    if not use_api:
-        df = transform_date_from_appointments(df)
+    # df = df.loc[~df['Unidade do agendamento'].isin(stores_to_remove)]
     
     return df
 
@@ -104,151 +105,141 @@ def load_page_appointments():
     """Main function to display leads data."""
     
     st.title("📊 2 - Agendamentos")
+    st.markdown("---")
+    st.subheader("Selecione o intervalo de datas para o relatório:")
 
-    st.sidebar.header("Filtros")
-    # TODO replace this with sidebar_api
-    use_date_range = st.sidebar.checkbox("Usar intervalo de datas personalizado", False)
-    
-    use_api = False
     start_date = None
     end_date = None
     
-    if use_date_range:
-        col1, col2 = st.sidebar.columns(2)
+    col1, col2 = st.columns(2)
+    with col1:
+        start_date = st.date_input(
+            "Data Inicial",
+            value=datetime.now() - timedelta(days=2),
+            max_value=datetime.now()
+        ).strftime('%Y-%m-%d')
+    with col2:
+        end_date = st.date_input(
+            "Data Final",
+            value=datetime.now(),
+            max_value=datetime.now()
+        ).strftime('%Y-%m-%d')
+        
+    if st.button("Carregar"):
+        df_appointments = load_data(start_date, end_date)
+
+        ########
+        # Header
+        header_appointments(df_appointments)
+    
+        # Add defensive checks before filtering
+        if 'status' not in df_appointments.columns or 'Procedimento' not in df_appointments.columns:
+            st.error("Colunas necessárias para filtros não encontradas no dataframe. Verifique o mapeamento de colunas.")
+            return
+            
+        df_appointments['Data'] = pd.to_datetime(df_appointments['Data']).dt.date
+        
+        # Filter for appointments (agendamentos)
+        df_appointments_agendamentos = df_appointments[
+                                          (df_appointments['status'].isin(agendamento_status)) 
+                                          & (df_appointments['Procedimento'].isin(procedimento_avaliacao))]
+
+        # Filter for comparecimentos
+        df_appointments_comparecimentos = df_appointments[
+                                          (df_appointments['status'].isin(comparecimento_status)) 
+                                          & (df_appointments['Procedimento'].isin(procedimento_avaliacao))]
+
+        # Removing the hour from "Data"
+        df_appointments_agendamentos['Data'] = pd.to_datetime(df_appointments_agendamentos['Data']).dt.date
+        df_appointments_comparecimentos['Data'] = pd.to_datetime(df_appointments_comparecimentos['Data']).dt.date
+        
+        #######
+        # Div 1 Análise Detalhada: Agendamentos por Dia do Mês e Agendamentos por Unidade
+        col1, col2 = st.columns(2)
+        
         with col1:
-            start_date = st.date_input(
-                "Data Inicial",
-                value=datetime.now() - timedelta(days=30),
-                max_value=datetime.now()
-            ).strftime('%Y-%m-%d')
+            groupby_agendamentos_by_day = groupby_agendamentos_por_dia(df_appointments_agendamentos)
+            
+            fig_day = px.line(
+                groupby_agendamentos_by_day,
+                x='Data',
+                y='ID agendamento',
+                title='Agendamentos por Dia do Mês',
+                labels={'ID agendamento': 'Quantidade de Agendamentos', 'Data': 'Dia do mês'},
+                markers=True
+            )
+            st.plotly_chart(fig_day, use_container_width=True, key='fig_day_agendamentos')
+        
         with col2:
-            end_date = st.date_input(
-                "Data Final",
-                value=datetime.now(),
-                max_value=datetime.now()
-            ).strftime('%Y-%m-%d')
+            groupby_agendamentos_by_store = groupby_agendamentos_por_unidade(df_appointments_agendamentos)
+            
+            fig_store = px.bar(
+                groupby_agendamentos_by_store,
+                x='Unidade do agendamento',
+                y='ID agendamento',
+                title='Agendamentos por Unidade',
+                labels={'ID agendamento': 'Quantidade de Agendamentos', 'Unidade do agendamento': 'Unidade'}
+            )
+            st.plotly_chart(fig_store, use_container_width=True, key='fig_store_agendamentos')
         
-        use_api = st.sidebar.checkbox("Usar API para buscar dados", True)
-
-        if use_api:
-            st.sidebar.info("Os dados serão buscados da API usando o intervalo de datas selecionado.")
-    
-    df_appointments = load_data(start_date, end_date, use_api)
-
-    if not use_date_range:
-        time_filter = st.sidebar.selectbox(
-            "Período", available_periods
-        )
-        if time_filter != "Todos os dados":
-            df_appointments = create_time_filtered_df(df_appointments, days_map[time_filter])
-    
-    unidades = ["Todas"] + sorted(df_appointments['Unidade do agendamento'].unique().tolist())
-    selected_store = st.sidebar.selectbox("Unidade", unidades)
-    
-    if selected_store != "Todas":
-        df_appointments = df_appointments[df_appointments['Unidade do agendamento'] == selected_store]
-    
-    ########
-    # Header
-    header_appointments(df_appointments)
-    
-    df_appointments_agendamentos = df_appointments[
-                                        (df_appointments['Status'].isin(agendamento_status)) 
-                                        & (df_appointments['Procedimento'].isin(procedimento_avaliacao))]
-
-    df_appointments_comparecimentos = df_appointments[
-                                        (df_appointments['Status'].isin(comparecimento_status)) 
-                                        & (df_appointments['Procedimento'].isin(procedimento_avaliacao))]
-
-    # Removing the hour from "Data"
-    df_appointments_agendamentos['Data'] = pd.to_datetime(df_appointments_agendamentos['Data']).dt.date
-    df_appointments_comparecimentos['Data'] = pd.to_datetime(df_appointments_comparecimentos['Data']).dt.date
-    
-    #######
-    # Div 1 Análise Detalhada: Agendamentos por Dia do Mês e Agendamentos por Unidade
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        groupby_agendamentos_by_day = groupby_agendamentos_por_dia(df_appointments_agendamentos)
+        #######
+        # Div 2 Análise Detalhada: Comparecimentos por Dia do Mês e Comparecimentos por Unidade
+        col1, col2 = st.columns(2)
         
-        fig_day = px.line(
-            groupby_agendamentos_by_day,
-            x='Data',
-            y='ID agendamento',
-            title='Agendamentos por Dia do Mês',
-            labels={'ID agendamento': 'Quantidade de Agendamentos', 'Data': 'Dia do mês'},
-            markers=True
-        )
-        st.plotly_chart(fig_day, use_container_width=True, key='fig_day_agendamentos')
-    
-    with col2:
-        groupby_agendamentos_by_store = groupby_agendamentos_por_unidade(df_appointments_agendamentos)
+        with col1:
+            groupby_comparecimentos_by_day = groupby_comparecimentos_por_dia(df_appointments_comparecimentos)
+            
+            fig_day = px.line(
+                groupby_comparecimentos_by_day,
+                x='Data',
+                y='ID agendamento',
+                title='Comparecimentos por Dia do Mês',
+                labels={'ID agendamento': 'Quantidade de Comparecimentos', 'Data': 'Dia do mês'},
+                markers=True,
+            )
+            st.plotly_chart(fig_day, use_container_width=True, key='fig_day_comparecimentos')
         
-        fig_store = px.bar(
-            groupby_agendamentos_by_store,
-            x='Unidade do agendamento',
-            y='ID agendamento',
-            title='Agendamentos por Unidade',
-            labels={'ID agendamento': 'Quantidade de Agendamentos', 'Unidade do agendamento': 'Unidade'}
-        )
-        st.plotly_chart(fig_store, use_container_width=True, key='fig_store_agendamentos')
-    
-    #######
-    # Div 2 Análise Detalhada: Comparecimentos por Dia do Mês e Comparecimentos por Unidade
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        groupby_comparecimentos_by_day = groupby_comparecimentos_por_dia(df_appointments_comparecimentos)
+        with col2:
+            groupby_comparecimentos_by_store = groupby_comparecimentos_por_unidade(df_appointments_comparecimentos)
+            
+            fig_store = px.bar(
+                groupby_comparecimentos_by_store,
+                x='Unidade do agendamento',
+                y='ID agendamento',
+                title='Comparecimentos por Unidade',
+                labels={'ID agendamento': 'Quantidade de Comparecimentos', 'Unidade do agendamento': 'Unidade'}
+            )
+            st.plotly_chart(fig_store, use_container_width=True, key='fig_store_comparecimentos')
+
+        ########
+        # Div 3: Tabela de Comparecimentos por Dia e por Unidade
+        df_appointments_comparecimentos_by_day = groupby_agendamentos_por_dia_pivoted(df_appointments_comparecimentos)
+        st.write("Comparecimentos por Dia e por Unidade:")
+        st.dataframe(df_appointments_comparecimentos_by_day)
+
+        ########
+        # TODO move onwards
         
-        fig_day = px.line(
-            groupby_comparecimentos_by_day,
-            x='Data',
-            y='ID agendamento',
-            title='Comparecimentos por Dia do Mês',
-            labels={'ID agendamento': 'Quantidade de Comparecimentos', 'Data': 'Dia do mês'},
-            markers=True,
-        )
-        st.plotly_chart(fig_day, use_container_width=True, key='fig_day_comparecimentos')
-    
-    with col2:
-        groupby_comparecimentos_by_store = groupby_comparecimentos_por_unidade(df_appointments_comparecimentos)
-        
-        fig_store = px.bar(
-            groupby_comparecimentos_by_store,
-            x='Unidade do agendamento',
-            y='ID agendamento',
-            title='Comparecimentos por Unidade',
-            labels={'ID agendamento': 'Quantidade de Comparecimentos', 'Unidade do agendamento': 'Unidade'}
-        )
-        st.plotly_chart(fig_store, use_container_width=True, key='fig_store_comparecimentos')
+        # Div 4: Agenda do dia:
+        today = end_date # datetime.now().strftime('%d-%m-%Y')
+        df_appointments_today = df_appointments_agendamentos[df_appointments_agendamentos['Data'] == today]
+        # Groupby day and store
+        df_appointments_today_by_day_and_store = groupby_agendamentos_por_dia_pivoted(df_appointments_today)
+        st.write("Agenda do dia:")
+        st.dataframe(df_appointments_today_by_day_and_store)
 
-    ########
-    # Div 3: Tabela de Comparecimentos por Dia e por Unidade
-    df_appointments_comparecimentos_by_day = groupby_agendamentos_por_dia_pivoted(df_appointments_comparecimentos)
-    st.write("Comparecimentos por Dia e por Unidade:")
-    st.dataframe(df_appointments_comparecimentos_by_day)
+        # DEBUGGING:
+        df_appointments_clean = df_appointments[appointments_api_clean_columns]
+        df_appointments_clean = appointment_crm_columns_reorganizer(df_appointments_clean)
+        st.write("Debugging: df_appointments")
+        st.dataframe(df_appointments_clean)
 
-    ########
-    # Div 4: Agenda do dia:
-    today = end_date # datetime.now().strftime('%d-%m-%Y') # TODO
-    df_appointments_today = df_appointments_agendamentos[df_appointments_agendamentos['Data'] == today]
-    # Groupby day and store
-    df_appointments_today_by_day_and_store = groupby_agendamentos_por_dia_pivoted(df_appointments_today)
-    st.write("Agenda do dia:")
-    st.dataframe(df_appointments_today_by_day_and_store)
+        df_appointments_agendamentos_clean = df_appointments_agendamentos[appointments_api_clean_columns]
+        df_appointments_agendamentos_clean = appointment_crm_columns_reorganizer(df_appointments_agendamentos_clean)
+        st.write("Debugging: df_appointments_agendamentos")
+        st.dataframe(df_appointments_agendamentos_clean)
 
-    # DEBUGGING:
-    df_appointments_clean = df_appointments[appointments_api_clean_columns]
-    df_appointments_clean = appointment_crm_columns_reorganizer(df_appointments_clean)
-    st.write("Debugging: df_appointments")
-    st.dataframe(df_appointments_clean)
-
-    df_appointments_agendamentos_clean = df_appointments_agendamentos[appointments_api_clean_columns]
-    df_appointments_agendamentos_clean = appointment_crm_columns_reorganizer(df_appointments_agendamentos_clean)
-    st.write("Debugging: df_appointments_agendamentos")
-    st.dataframe(df_appointments_agendamentos_clean)
-
-    df_appointments_comparecimentos_clean = df_appointments_comparecimentos[appointments_api_clean_columns]
-    df_appointments_comparecimentos_clean = appointment_crm_columns_reorganizer(df_appointments_comparecimentos_clean)
-    st.write("Debugging: df_appointments_comparecimentos")
-    st.dataframe(df_appointments_comparecimentos_clean)    
+        df_appointments_comparecimentos_clean = df_appointments_comparecimentos[appointments_api_clean_columns]
+        df_appointments_comparecimentos_clean = appointment_crm_columns_reorganizer(df_appointments_comparecimentos_clean)
+        st.write("Debugging: df_appointments_comparecimentos")
+        st.dataframe(df_appointments_comparecimentos_clean)    

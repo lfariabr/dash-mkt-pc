@@ -52,5 +52,8 @@ def load_page_leadsByUser():
             'messages_count': 'Leads Puxados'
         })
         df_leadsByUser = df_leadsByUser.reset_index(drop=True)
+
+        # Sorting from highest to lowest
+        df_leadsByUser = df_leadsByUser.sort_values(by='Leads Puxados', ascending=False)
         
         st.dataframe(df_leadsByUser, hide_index=True)

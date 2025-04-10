@@ -5,11 +5,20 @@ import asyncio
 from apiCrm.resolvers.fetch_followUpEntriesReport import fetch_and_process_followUpEntriesReport
 from apiCrm.resolvers.fetch_followUpsCommentsReport import fetch_and_process_followUpsCommentsReport
 
+async def fetch_all_data(start_date, end_date):
+    """Run both API calls concurrently to improve performance"""
+    entries_task = fetch_and_process_followUpEntriesReport(start_date, end_date)
+    comments_task = fetch_and_process_followUpsCommentsReport(start_date, end_date)
+    
+    # Execute both tasks concurrently
+    entries_data, comments_data = await asyncio.gather(entries_task, comments_task)
+    return entries_data, comments_data
+
 def load_data(start_date=None, end_date=None):
     if start_date and end_date:
         try:
-            entries_data = asyncio.run(fetch_and_process_followUpEntriesReport(start_date, end_date))
-            comments_data = asyncio.run(fetch_and_process_followUpsCommentsReport(start_date, end_date))
+            # Run both queries concurrently with a single asyncio.run call
+            entries_data, comments_data = asyncio.run(fetch_all_data(start_date, end_date))
             return pd.DataFrame(entries_data), pd.DataFrame(comments_data)
         except Exception as e:
             st.error(f"Erro ao carregar dados: {str(e)}")
@@ -60,6 +69,8 @@ def load_page_followUpReport_and_followUpCommentsReport():
             'customer_ids': 'ID dos Clientes'
         })
         df_entries = df_entries.reset_index(drop=True)
+        # Sort by Consultora de Vendas
+        df_entries = df_entries.sort_values(by='Novos Pós-Vendas', ascending=False)
         st.dataframe(df_entries, hide_index=True)
         
         st.markdown("---")
@@ -73,4 +84,6 @@ def load_page_followUpReport_and_followUpCommentsReport():
             'comments_customer_ids': 'ID dos Clientes'
         })
         df_comments = df_comments.reset_index(drop=True)
+        # Sort by Consultora de Vendas
+        df_comments = df_comments.sort_values(by='Comentários de Pós-Vendas', ascending=False)
         st.dataframe(df_comments, hide_index=True)
