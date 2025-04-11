@@ -43,7 +43,7 @@ async def fetch_grossSalesReport(session, start_date: str, end_date: str) -> Lis
         }
         pagination: { 
           currentPage: $currentPage, 
-          perPage: 100 
+          perPage: 400 
         }
       ) {
         data {

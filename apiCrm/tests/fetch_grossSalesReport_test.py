@@ -17,7 +17,7 @@ from apiCrm.resolvers.fetch_grossSalesReport import fetch_and_process_grossSales
 async def main():
     # Calculate date range for last 7 days
     end_date = datetime.now().strftime('%Y-%m-%d')
-    start_date = (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%d')
+    start_date = (datetime.now() - timedelta(days=2)).strftime('%Y-%m-%d')
     
     print(f"Fetching sales reports from {start_date} to {end_date}...")
     

@@ -19,6 +19,7 @@ from views.appointments.appointments_grouper import (
     groupby_comparecimentos_por_unidade,
     groupby_agendamentos_por_dia_pivoted,
 )
+
 def load_data(start_date=None, end_date=None, use_api=False):
     """
     Load and preprocess appointments data.
@@ -31,6 +32,7 @@ def load_data(start_date=None, end_date=None, use_api=False):
     Returns:
         DataFrame: Processed appointments dataframe
     """
+    
     if start_date and end_date:
         try:
             # Run the async function using asyncio
@@ -122,7 +124,7 @@ def load_page_appointments():
         end_date = st.date_input(
             "Data Final",
             value=datetime.now(),
-            max_value=datetime.now()
+            max_value=datetime.now() + timedelta(days=5)
         ).strftime('%Y-%m-%d')
         
     if st.button("Carregar"):
