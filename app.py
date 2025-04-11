@@ -34,7 +34,7 @@ def main():
         },
         "COC": {
             "1 - Puxada de Leads": load_page_leadsByUser,
-            "2 - Tarefas de Pós-Vendas": load_page_followUpReport_and_followUpCommentsReport,
+            "2 - Tarefas Pós-Vendas": load_page_followUpReport_and_followUpCommentsReport,
             "3 - Agd por Usuário": load_page_appointmentsByUser
         }
     }
