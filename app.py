@@ -12,6 +12,7 @@ from views.sales_view import load_page_sales
 # COC
 from views.leadsByUserReport_view import load_page_leadsByUser
 from views.followUpReport_view import load_page_followUpReport_and_followUpCommentsReport
+from views.appointmentByUser_view import load_page_appointmentsByUser
 
 st.set_page_config(
     page_title="Pró-Corpo BI",
@@ -33,7 +34,8 @@ def main():
         },
         "COC": {
             "1 - Puxada de Leads": load_page_leadsByUser,
-            "2 - Tarefas de Pós-Vendas": load_page_followUpReport_and_followUpCommentsReport
+            "2 - Tarefas de Pós-Vendas": load_page_followUpReport_and_followUpCommentsReport,
+            "3 - Agd por Usuário": load_page_appointmentsByUser
         }
     }
     
