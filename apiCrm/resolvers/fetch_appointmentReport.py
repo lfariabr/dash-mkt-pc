@@ -369,7 +369,7 @@ async def fetch_and_process_appointment_report(start_date: str, end_date: str) -
     return appointments
 
 
-async def fetch_appointmentReportCreatedAt(session, start_date: str, end_date: str) -> List[Dict]:
+async def fetch_appointmentReportUpdatedAt(session, start_date: str, end_date: str) -> List[Dict]:
     """
     Fetches appointment report data from the CRM API within a specified date range.
     
@@ -532,7 +532,6 @@ async def fetch_appointmentReportCreatedAt(session, start_date: str, end_date: s
                     procedure = appointment.get('procedure', {}) or {}
                     employee = appointment.get('employee', {}) or {}
                     status = appointment.get('status', {}) or {}
-                    createdBy = appointment.get('createdBy', {}) or {}
                     updatedBy = appointment.get('updatedBy', {}) or {}
                     oldestParent = appointment.get('oldestParent', {}) or {}
                     latestProgressComment = appointment.get('latestProgressComment', {}) or {}
@@ -635,8 +634,11 @@ async def fetch_appointmentReportCreatedAt(session, start_date: str, end_date: s
                                         status = appointment.get('status', {}) or {}
                                         updatedBy = appointment.get('updatedBy', {}) or {}
                                         oldestParent = appointment.get('oldestParent', {}) or {}
-                                        createdBy = oldestParent.get('createdBy', {}) or {}
                                         latestProgressComment = appointment.get('latestProgressComment', {}) or {}
+
+                                        # Get data from oldestParent
+                                        createdBy = oldestParent.get('createdBy', {}) or {}
+                                        createdAt = oldestParent.get('createdAt', '')
                                         
                                         # Safely extract nested objects one level deeper
                                         customer_source = customer.get('source', {}) or {}
@@ -667,9 +669,9 @@ async def fetch_appointmentReportCreatedAt(session, start_date: str, end_date: s
                                             'beforePhotoUrl': appointment.get('beforePhotoUrl', ''),
                                             'batchPhotoUrl': appointment.get('batchPhotoUrl', ''),
                                             'afterPhotoUrl': appointment.get('afterPhotoUrl', ''),
-                                            'createdBy': oldestParent.get('createdBy', {}).get('name', ''),
-                                            'createdBy_group': oldestParent.get('createdBy', {}).get('group', {}).get('name', ''),
-                                            'createdAt': oldestParent.get('createdAt', ''),
+                                            'createdBy': createdBy.get('name', ''),
+                                            'createdBy_group': createdBy.get('group', {}).get('name', ''),
+                                            'createdAt': createdAt,
                                             'source': customer_source.get('title', ''),
                                             'updatedAt': appointment.get('updatedAt', ''),
                                             'updatedBy': updatedBy.get('name', ''),
@@ -706,7 +708,7 @@ async def fetch_appointmentReportCreatedAt(session, start_date: str, end_date: s
         logger.error(f"Traceback: {traceback.format_exc()}")
         return all_appointments
 
-async def fetch_and_process_appointment_report_created_at(start_date: str, end_date: str) -> List[Dict]:
+async def fetch_and_process_appointment_report_updated_at(start_date: str, end_date: str) -> List[Dict]:
     """
     Creates a session and fetches appointment report data.
     
@@ -720,6 +722,6 @@ async def fetch_and_process_appointment_report_created_at(start_date: str, end_d
     import aiohttp
     
     async with aiohttp.ClientSession() as session:
-        appointments = await fetch_appointmentReportCreatedAt(session, start_date, end_date)
+        appointments = await fetch_appointmentReportUpdatedAt(session, start_date, end_date)
     
     return appointments

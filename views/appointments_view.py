@@ -139,6 +139,8 @@ def load_page_appointments():
             header_appointments(df_appointments)
                 
             df_appointments['Data'] = pd.to_datetime(df_appointments['Data']).dt.date
+            remove_pg_store = 'PRAIA GRANDE'
+            df_appointments = df_appointments.loc[df_appointments['Unidade do agendamento'] != remove_pg_store]
             
             # Filter for appointments (agendamentos)
             df_appointments_agendamentos = df_appointments[
@@ -219,7 +221,7 @@ def load_page_appointments():
             st.dataframe(df_appointments_comparecimentos_by_day)
 
             ########
-            # TODO move onwards
+            # TODO fix this
             
             # Div 4: Agenda do dia:
             today = end_date # datetime.now().strftime('%d-%m-%Y')

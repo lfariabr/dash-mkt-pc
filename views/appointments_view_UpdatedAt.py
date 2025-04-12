@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 from datetime import datetime, timedelta
 import asyncio
-from apiCrm.resolvers.fetch_appointmentReport import fetch_and_process_appointment_report_created_at 
+from apiCrm.resolvers.fetch_appointmentReport import fetch_and_process_appointment_report_updated_at 
 from views.appointments.appointment_columns import appointments_api_clean_columns
 from views.appointments.appointment_cleaner import appointment_crm_columns_reorganizer
 from views.appointments.appointment_types import comparecimento_status, procedimento_avaliacao, agendamento_status_por_atendente
@@ -24,10 +24,10 @@ def load_data(start_date=None, end_date=None, use_api=False):
     if start_date and end_date:
         try:
             # Run the async function using asyncio
-            appointments_data = asyncio.run(fetch_and_process_appointment_report_created_at(start_date, end_date))
+            appointments_data = asyncio.run(fetch_and_process_appointment_report_updated_at(start_date, end_date))
 
             if not appointments_data:
-                st.error("Não foi possível obter dados da API. Usando dados locais.")
+                st.error("Não foi possível obter dados da API.")
                 return load_data(use_api=False)
             
             df = pd.DataFrame(appointments_data)
@@ -51,7 +51,7 @@ def load_data(start_date=None, end_date=None, use_api=False):
                 'procedure_groupLabel': 'Grupo do procedimento',
                 'employee': 'Prestador',
                 'oldestParent_createdBy_group': 'Grupo da primeira atendente',
-                'comments': 'Observação (mais recente)', # TODO pending from this on...
+                'comments': 'Observação (mais recente)',
                 'updatedAt': 'Data de atualização',
                 'updatedBy': 'Atualizado por',
                 'createdBy': 'Nome da primeira atendente',
@@ -94,7 +94,7 @@ def create_time_filtered_df(df, days=None):
         return df[df['Data'] >= cutoff_date]
     return df
 
-def load_page_appointments_CreatedAt():
+def load_page_appointments_UpdatedAt():
     """Main function to display leads data."""
     
     st.title("📊 2 - Agendamentos")
@@ -139,15 +139,19 @@ def load_page_appointments_CreatedAt():
             df_appointments_agendamentos['Data'] = pd.to_datetime(df_appointments_agendamentos['Data']).dt.date
             df_appointments_comparecimentos['Data'] = pd.to_datetime(df_appointments_comparecimentos['Data']).dt.date
 
-
+            # Checking atendente "Ingrid Caroline Santos Andrade"
+            df_ingrid = df_appointments_agendamentos[df_appointments_agendamentos['Nome da primeira atendente'] == 'Ingrid Caroline Santos Andrade']
+            st.write("Debugging: Agendamentos da Ingrid")
+            st.dataframe(df_ingrid)
+            
             ########
-            # TODO move onwards
+            # TODO share query with Samir to double check...
             # DEBUGGING:
             st.dataframe(df_appointments, hide_index=True)
             
             # df_appointments_clean = df_appointments[appointments_api_clean_columns]        
             # df_appointments_clean = appointment_crm_columns_reorganizer(df_appointments_clean)
-            st.write("Debugging: df_appointments_agendamentos")
+            st.write("Debugging: Agendamentos das Atendentes")
             st.dataframe(df_appointments_agendamentos)
 
             # Groupby df_appointments_agendamentos per 'Nome da primeira atendente'
