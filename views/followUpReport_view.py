@@ -55,35 +55,36 @@ def load_page_followUpReport_and_followUpCommentsReport():
         ).strftime('%Y-%m-%d')
     
     if st.button("Carregar"):
+        with st.spinner("Carregando dados..."):
 
-        df_entries, df_comments = load_data(start_date, end_date)
-        
-        st.markdown("---")
-        st.subheader("Novos Pós-Vendas")
+            df_entries, df_comments = load_data(start_date, end_date)
+            
+            st.markdown("---")
+            st.subheader("Novos Pós-Vendas")
 
-        entries_columns = ['name', 'follow_ups_count', 'customer_ids']
-        df_entries = df_entries[entries_columns]
-        df_entries = df_entries.rename(columns={
-            'name': 'Consultora de Vendas',
-            'follow_ups_count': 'Novos Pós-Vendas',
-            'customer_ids': 'ID dos Clientes'
-        })
-        df_entries = df_entries.reset_index(drop=True)
-        # Sort by Consultora de Vendas
-        df_entries = df_entries.sort_values(by='Novos Pós-Vendas', ascending=False)
-        st.dataframe(df_entries, hide_index=True)
-        
-        st.markdown("---")
-        st.subheader("Comentários de Pós-Vendas")
+            entries_columns = ['name', 'follow_ups_count', 'customer_ids']
+            df_entries = df_entries[entries_columns]
+            df_entries = df_entries.rename(columns={
+                'name': 'Consultora de Vendas',
+                'follow_ups_count': 'Novos Pós-Vendas',
+                'customer_ids': 'ID dos Clientes'
+            })
+            df_entries = df_entries.reset_index(drop=True)
+            # Sort by Consultora de Vendas
+            df_entries = df_entries.sort_values(by='Novos Pós-Vendas', ascending=False)
+            st.dataframe(df_entries, hide_index=True)
+            
+            st.markdown("---")
+            st.subheader("Comentários de Pós-Vendas")
 
-        comments_columns = ['name', 'comments_count', 'comments_customer_ids']
-        df_comments = df_comments[comments_columns]
-        df_comments = df_comments.rename(columns={
-            'name': 'Consultora de Vendas',
-            'comments_count': 'Comentários de Pós-Vendas',
-            'comments_customer_ids': 'ID dos Clientes'
-        })
-        df_comments = df_comments.reset_index(drop=True)
-        # Sort by Consultora de Vendas
-        df_comments = df_comments.sort_values(by='Comentários de Pós-Vendas', ascending=False)
-        st.dataframe(df_comments, hide_index=True)
+            comments_columns = ['name', 'comments_count', 'comments_customer_ids']
+            df_comments = df_comments[comments_columns]
+            df_comments = df_comments.rename(columns={
+                'name': 'Consultora de Vendas',
+                'comments_count': 'Comentários de Pós-Vendas',
+                'comments_customer_ids': 'ID dos Clientes'
+            })
+            df_comments = df_comments.reset_index(drop=True)
+            # Sort by Consultora de Vendas
+            df_comments = df_comments.sort_values(by='Comentários de Pós-Vendas', ascending=False)
+            st.dataframe(df_comments, hide_index=True)

@@ -66,74 +66,75 @@ def load_page_appointmentsByUser():
         ).strftime('%Y-%m-%d')
         
     if st.button("Carregar"):
-        df_appointmentsByUser = load_data(start_date, end_date)
-        
-        if not df_appointmentsByUser.empty:
-            st.markdown("---")
-            st.subheader("Agendamentos por Atendente")
+        with st.spinner("Carregando dados..."):
+            df_appointmentsByUser = load_data(start_date, end_date)
             
-            # Select and rename columns for display
-            display_columns = ['name', 'appointments_count']
-            df_display = df_appointmentsByUser[display_columns].copy()
-            
-            # Rename columns for better readability
-            df_display = df_display.rename(columns={
-                'name': 'Atendente',
-                'appointments_count': 'Total de Agendamentos',
-            })
-            
-            # Sort by appointments count in descending order
-            df_display = df_display.sort_values(by='Total de Agendamentos', ascending=False)
-            
-            # Display the dataframe
-            st.dataframe(df_display, hide_index=True)
-            
-            # Process and display the procedure counts
-            st.markdown("---")
-            st.subheader("Detalhamento por Tipo de Procedimento")
-            
-            # Create a new dataframe for procedure types
-            procedure_df = pd.DataFrame()
-            
-            for idx, row in df_appointmentsByUser.iterrows():
-                # Extract the name and procedure counts
-                name = row['name']
-                procedure_counts = row['procedure_counts']
+            if not df_appointmentsByUser.empty:
+                st.markdown("---")
+                st.subheader("Agendamentos por Atendente")
                 
-                # Create a row with the name and procedure counts
-                procedure_row = {'Atendente': name}
-                procedure_row.update(procedure_counts)
+                # Select and rename columns for display
+                display_columns = ['name', 'appointments_count']
+                df_display = df_appointmentsByUser[display_columns].copy()
                 
-                # Add the row to the procedure dataframe
-                procedure_df = pd.concat([procedure_df, pd.DataFrame([procedure_row])], ignore_index=True)
-            
-            # Sort by the 'Atendente' column for consistency
-            if not procedure_df.empty:
-                # Get the procedure columns (all columns except 'Atendente')
-                procedure_columns = [col for col in procedure_df.columns if col != 'Atendente']
+                # Rename columns for better readability
+                df_display = df_display.rename(columns={
+                    'name': 'Atendente',
+                    'appointments_count': 'Total de Agendamentos',
+                })
                 
-                # Create a mapping of procedure codes to user-friendly names if needed
-                procedure_names = {
-                    'aesthetic': 'Estética',
-                    'hair_removal': 'Depilação',
-                    'invasive': 'Injetáveis e Invasivos',
-                    'surgery': 'Cirurgia',
-                    'tattoo': 'Tatuagem'
-                }
+                # Sort by appointments count in descending order
+                df_display = df_display.sort_values(by='Total de Agendamentos', ascending=False)
                 
-                # Rename procedure columns if they match known codes
-                rename_dict = {}
-                for col in procedure_columns:
-                    if col in procedure_names:
-                        rename_dict[col] = procedure_names[col]
+                # Display the dataframe
+                st.dataframe(df_display, hide_index=True)
                 
-                if rename_dict:
-                    procedure_df = procedure_df.rename(columns=rename_dict)
+                # Process and display the procedure counts
+                st.markdown("---")
+                st.subheader("Detalhamento por Tipo de Procedimento")
                 
-                # Sort by the 'Injetáveis e Invasivos' column
-                procedure_df = procedure_df.sort_values(by='Injetáveis e Invasivos', ascending=False)
+                # Create a new dataframe for procedure types
+                procedure_df = pd.DataFrame()
                 
-                # Display the procedure dataframe
-                st.dataframe(procedure_df, hide_index=True)
-            else:
-                st.info("Não foram encontrados detalhes de procedimentos para o período selecionado.")
+                for idx, row in df_appointmentsByUser.iterrows():
+                    # Extract the name and procedure counts
+                    name = row['name']
+                    procedure_counts = row['procedure_counts']
+                    
+                    # Create a row with the name and procedure counts
+                    procedure_row = {'Atendente': name}
+                    procedure_row.update(procedure_counts)
+                    
+                    # Add the row to the procedure dataframe
+                    procedure_df = pd.concat([procedure_df, pd.DataFrame([procedure_row])], ignore_index=True)
+                
+                # Sort by the 'Atendente' column for consistency
+                if not procedure_df.empty:
+                    # Get the procedure columns (all columns except 'Atendente')
+                    procedure_columns = [col for col in procedure_df.columns if col != 'Atendente']
+                    
+                    # Create a mapping of procedure codes to user-friendly names if needed
+                    procedure_names = {
+                        'aesthetic': 'Estética',
+                        'hair_removal': 'Depilação',
+                        'invasive': 'Injetáveis e Invasivos',
+                        'surgery': 'Cirurgia',
+                        'tattoo': 'Tatuagem'
+                    }
+                    
+                    # Rename procedure columns if they match known codes
+                    rename_dict = {}
+                    for col in procedure_columns:
+                        if col in procedure_names:
+                            rename_dict[col] = procedure_names[col]
+                    
+                    if rename_dict:
+                        procedure_df = procedure_df.rename(columns=rename_dict)
+                    
+                    # Sort by the 'Injetáveis e Invasivos' column
+                    procedure_df = procedure_df.sort_values(by='Injetáveis e Invasivos', ascending=False)
+                    
+                    # Display the procedure dataframe
+                    st.dataframe(procedure_df, hide_index=True)
+                else:
+                    st.info("Não foram encontrados detalhes de procedimentos para o período selecionado.")

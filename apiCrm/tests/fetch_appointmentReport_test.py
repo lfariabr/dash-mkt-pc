@@ -17,7 +17,7 @@ from apiCrm.resolvers.fetch_appointmentReport import fetch_and_process_appointme
 async def main():
     # Calculate date range for last 7 days
     end_date = datetime.now().strftime('%Y-%m-%d')
-    start_date = (datetime.now() - timedelta(days=70)).strftime('%Y-%m-%d')
+    start_date = (datetime.now() - timedelta(days=0)).strftime('%Y-%m-%d')
     
     print(f"Fetching appointment reports from {start_date} to {end_date}...")
     

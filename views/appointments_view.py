@@ -66,6 +66,9 @@ def load_data(start_date=None, end_date=None, use_api=False):
                 'comments': 'Observação (mais recente)', # TODO pending from this on...
                 'updatedAt': 'Data de atualização',
                 'updatedBy': 'Atualizado por',
+                'createdBy': 'Nome da primeira atendente',
+                'createdBy_group': 'Grupo da Primeira atendente',
+                'createdAt': 'Data de criação',
                 'latest_comment': 'Último comentário',
                 'latest_comment_createdAt': 'Data do último comentário',
                 'latest_comment_user': 'Usuário do último comentário',
@@ -128,115 +131,116 @@ def load_page_appointments():
         ).strftime('%Y-%m-%d')
         
     if st.button("Carregar"):
-        df_appointments = load_data(start_date, end_date)
+        with st.spinner("Carregando dados..."):
+            df_appointments = load_data(start_date, end_date)
 
-        ########
-        # Header
-        header_appointments(df_appointments)
+            ########
+            # Header
+            header_appointments(df_appointments)
+                
+            df_appointments['Data'] = pd.to_datetime(df_appointments['Data']).dt.date
             
-        df_appointments['Data'] = pd.to_datetime(df_appointments['Data']).dt.date
-        
-        # Filter for appointments (agendamentos)
-        df_appointments_agendamentos = df_appointments[
-                                          (df_appointments['status'].isin(agendamento_status)) 
-                                          & (df_appointments['Procedimento'].isin(procedimento_avaliacao))]
+            # Filter for appointments (agendamentos)
+            df_appointments_agendamentos = df_appointments[
+                                            (df_appointments['status'].isin(agendamento_status)) 
+                                            & (df_appointments['Procedimento'].isin(procedimento_avaliacao))]
 
-        # Filter for comparecimentos
-        df_appointments_comparecimentos = df_appointments[
-                                          (df_appointments['status'].isin(comparecimento_status)) 
-                                          & (df_appointments['Procedimento'].isin(procedimento_avaliacao))]
+            # Filter for comparecimentos
+            df_appointments_comparecimentos = df_appointments[
+                                            (df_appointments['status'].isin(comparecimento_status)) 
+                                            & (df_appointments['Procedimento'].isin(procedimento_avaliacao))]
 
-        # Removing the hour from "Data"
-        df_appointments_agendamentos['Data'] = pd.to_datetime(df_appointments_agendamentos['Data']).dt.date
-        df_appointments_comparecimentos['Data'] = pd.to_datetime(df_appointments_comparecimentos['Data']).dt.date
-        
-        #######
-        # Div 1 Análise Detalhada: Agendamentos por Dia do Mês e Agendamentos por Unidade
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            groupby_agendamentos_by_day = groupby_agendamentos_por_dia(df_appointments_agendamentos)
+            # Removing the hour from "Data"
+            df_appointments_agendamentos['Data'] = pd.to_datetime(df_appointments_agendamentos['Data']).dt.date
+            df_appointments_comparecimentos['Data'] = pd.to_datetime(df_appointments_comparecimentos['Data']).dt.date
             
-            fig_day = px.line(
-                groupby_agendamentos_by_day,
-                x='Data',
-                y='ID agendamento',
-                title='Agendamentos por Dia do Mês',
-                labels={'ID agendamento': 'Quantidade de Agendamentos', 'Data': 'Dia do mês'},
-                markers=True
-            )
-            st.plotly_chart(fig_day, use_container_width=True, key='fig_day_agendamentos')
-        
-        with col2:
-            groupby_agendamentos_by_store = groupby_agendamentos_por_unidade(df_appointments_agendamentos)
+            #######
+            # Div 1 Análise Detalhada: Agendamentos por Dia do Mês e Agendamentos por Unidade
+            col1, col2 = st.columns(2)
             
-            fig_store = px.bar(
-                groupby_agendamentos_by_store,
-                x='Unidade do agendamento',
-                y='ID agendamento',
-                title='Agendamentos por Unidade',
-                labels={'ID agendamento': 'Quantidade de Agendamentos', 'Unidade do agendamento': 'Unidade'}
-            )
-            st.plotly_chart(fig_store, use_container_width=True, key='fig_store_agendamentos')
-        
-        #######
-        # Div 2 Análise Detalhada: Comparecimentos por Dia do Mês e Comparecimentos por Unidade
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            groupby_comparecimentos_by_day = groupby_comparecimentos_por_dia(df_appointments_comparecimentos)
+            with col1:
+                groupby_agendamentos_by_day = groupby_agendamentos_por_dia(df_appointments_agendamentos)
+                
+                fig_day = px.line(
+                    groupby_agendamentos_by_day,
+                    x='Data',
+                    y='ID agendamento',
+                    title='Agendamentos por Dia do Mês',
+                    labels={'ID agendamento': 'Quantidade de Agendamentos', 'Data': 'Dia do mês'},
+                    markers=True
+                )
+                st.plotly_chart(fig_day, use_container_width=True, key='fig_day_agendamentos')
             
-            fig_day = px.line(
-                groupby_comparecimentos_by_day,
-                x='Data',
-                y='ID agendamento',
-                title='Comparecimentos por Dia do Mês',
-                labels={'ID agendamento': 'Quantidade de Comparecimentos', 'Data': 'Dia do mês'},
-                markers=True,
-            )
-            st.plotly_chart(fig_day, use_container_width=True, key='fig_day_comparecimentos')
-        
-        with col2:
-            groupby_comparecimentos_by_store = groupby_comparecimentos_por_unidade(df_appointments_comparecimentos)
+            with col2:
+                groupby_agendamentos_by_store = groupby_agendamentos_por_unidade(df_appointments_agendamentos)
+                
+                fig_store = px.bar(
+                    groupby_agendamentos_by_store,
+                    x='Unidade do agendamento',
+                    y='ID agendamento',
+                    title='Agendamentos por Unidade',
+                    labels={'ID agendamento': 'Quantidade de Agendamentos', 'Unidade do agendamento': 'Unidade'}
+                )
+                st.plotly_chart(fig_store, use_container_width=True, key='fig_store_agendamentos')
             
-            fig_store = px.bar(
-                groupby_comparecimentos_by_store,
-                x='Unidade do agendamento',
-                y='ID agendamento',
-                title='Comparecimentos por Unidade',
-                labels={'ID agendamento': 'Quantidade de Comparecimentos', 'Unidade do agendamento': 'Unidade'}
-            )
-            st.plotly_chart(fig_store, use_container_width=True, key='fig_store_comparecimentos')
+            #######
+            # Div 2 Análise Detalhada: Comparecimentos por Dia do Mês e Comparecimentos por Unidade
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                groupby_comparecimentos_by_day = groupby_comparecimentos_por_dia(df_appointments_comparecimentos)
+                
+                fig_day = px.line(
+                    groupby_comparecimentos_by_day,
+                    x='Data',
+                    y='ID agendamento',
+                    title='Comparecimentos por Dia do Mês',
+                    labels={'ID agendamento': 'Quantidade de Comparecimentos', 'Data': 'Dia do mês'},
+                    markers=True,
+                )
+                st.plotly_chart(fig_day, use_container_width=True, key='fig_day_comparecimentos')
+            
+            with col2:
+                groupby_comparecimentos_by_store = groupby_comparecimentos_por_unidade(df_appointments_comparecimentos)
+                
+                fig_store = px.bar(
+                    groupby_comparecimentos_by_store,
+                    x='Unidade do agendamento',
+                    y='ID agendamento',
+                    title='Comparecimentos por Unidade',
+                    labels={'ID agendamento': 'Quantidade de Comparecimentos', 'Unidade do agendamento': 'Unidade'}
+                )
+                st.plotly_chart(fig_store, use_container_width=True, key='fig_store_comparecimentos')
 
-        ########
-        # Div 3: Tabela de Comparecimentos por Dia e por Unidade
-        df_appointments_comparecimentos_by_day = groupby_agendamentos_por_dia_pivoted(df_appointments_comparecimentos)
-        st.write("Comparecimentos por Dia e por Unidade:")
-        st.dataframe(df_appointments_comparecimentos_by_day)
+            ########
+            # Div 3: Tabela de Comparecimentos por Dia e por Unidade
+            df_appointments_comparecimentos_by_day = groupby_agendamentos_por_dia_pivoted(df_appointments_comparecimentos)
+            st.write("Comparecimentos por Dia e por Unidade:")
+            st.dataframe(df_appointments_comparecimentos_by_day)
 
-        ########
-        # TODO move onwards
-        
-        # Div 4: Agenda do dia:
-        today = end_date # datetime.now().strftime('%d-%m-%Y')
-        df_appointments_today = df_appointments_agendamentos[df_appointments_agendamentos['Data'] == today]
-        # Groupby day and store
-        df_appointments_today_by_day_and_store = groupby_agendamentos_por_dia_pivoted(df_appointments_today)
-        st.write("Agenda do dia:")
-        st.dataframe(df_appointments_today_by_day_and_store)
+            ########
+            # TODO move onwards
+            
+            # Div 4: Agenda do dia:
+            today = end_date # datetime.now().strftime('%d-%m-%Y')
+            df_appointments_today = df_appointments_agendamentos[df_appointments_agendamentos['Data'] == today]
+            # Groupby day and store
+            df_appointments_today_by_day_and_store = groupby_agendamentos_por_dia_pivoted(df_appointments_today)
+            st.write("Agenda do dia:")
+            st.dataframe(df_appointments_today_by_day_and_store)
 
-        # DEBUGGING:
-        df_appointments_clean = df_appointments[appointments_api_clean_columns]        
-        df_appointments_clean = appointment_crm_columns_reorganizer(df_appointments_clean)
-        st.write("Debugging: df_appointments")
-        st.dataframe(df_appointments_clean)
+            # DEBUGGING:
+            df_appointments_clean = df_appointments[appointments_api_clean_columns]        
+            df_appointments_clean = appointment_crm_columns_reorganizer(df_appointments_clean)
+            st.write("Debugging: df_appointments")
+            st.dataframe(df_appointments_clean)
 
-        df_appointments_agendamentos_clean = df_appointments_agendamentos[appointments_api_clean_columns]
-        df_appointments_agendamentos_clean = appointment_crm_columns_reorganizer(df_appointments_agendamentos_clean)
-        st.write("Debugging: df_appointments_agendamentos")
-        st.dataframe(df_appointments_agendamentos_clean)
+            df_appointments_agendamentos_clean = df_appointments_agendamentos[appointments_api_clean_columns]
+            df_appointments_agendamentos_clean = appointment_crm_columns_reorganizer(df_appointments_agendamentos_clean)
+            st.write("Debugging: df_appointments_agendamentos")
+            st.dataframe(df_appointments_agendamentos_clean)
 
-        df_appointments_comparecimentos_clean = df_appointments_comparecimentos[appointments_api_clean_columns]
-        df_appointments_comparecimentos_clean = appointment_crm_columns_reorganizer(df_appointments_comparecimentos_clean)
-        st.write("Debugging: df_appointments_comparecimentos")
-        st.dataframe(df_appointments_comparecimentos_clean)    
+            df_appointments_comparecimentos_clean = df_appointments_comparecimentos[appointments_api_clean_columns]
+            df_appointments_comparecimentos_clean = appointment_crm_columns_reorganizer(df_appointments_comparecimentos_clean)
+            st.write("Debugging: df_appointments_comparecimentos")
+            st.dataframe(df_appointments_comparecimentos_clean)    

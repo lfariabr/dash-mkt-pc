@@ -136,115 +136,116 @@ def load_page_sales():
         ).strftime('%Y-%m-%d')
     
     if st.button("Carregar"):
-        df_sales = load_data(start_date, end_date)
-    
-        ########
-        # Header
-        header_sales(df_sales)
-
-        # Tratativas especiais:
-        df_sales = df_sales.loc[df_sales['Status'] == 'completed']
-        df_sales = df_sales.loc[df_sales['Consultor'] != 'BKO VENDAS']
+        with st.spinner("Carregando dados..."):
+            df_sales = load_data(start_date, end_date)
         
-        # Fix: Ensure proper numeric conversion of 'Valor líquido' for summation
-        # This is the critical step that needs to happen after filtering
-        df_sales['Valor líquido'] = df_sales['Valor líquido'].astype(float)
-        
-        # Sum of valor liquido
-        total_sales = df_sales['Valor líquido'].sum()
-        formatted_total = f"R$ {total_sales:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
-        st.write(f"Total de vendas: {formatted_total}")
-    
-        #####
-        # Div 1: Vendas por Dia
-        groupby_vendas_por_dia = groupby_sales_por_dia(df_sales)
-        grafico_vendas_por_dia = px.bar(
-            groupby_vendas_por_dia,
-            x='Dia',
-            y='Valor líquido',
-            title='Venda Diária',
-            labels={'Valor líquido': 'Valor Líquido', 'Dia': 'Dia do Mês'},
-        )
-        st.plotly_chart(grafico_vendas_por_dia)
+            ########
+            # Header
+            header_sales(df_sales)
 
-        #####
-        # Div 2: Vendas por Loja
-
-        groupby_vendas_dia_loja = groupby_sales_por_unidade(df_sales)
-        
-        pivot_vendas_dia_loja = groupby_vendas_dia_loja.pivot(
-                                index='Dia',
-                                columns='Unidade',
-                                values='Valor líquido')
-        pivot_vendas_dia_loja = pivot_vendas_dia_loja.fillna(0)
-        st.markdown("###### Venda Diária Detalhada")
-        st.dataframe(pivot_vendas_dia_loja)
-
-        #####
-        # Div 3: Vendas por Unidade e Consultor
-        col1, col2 = st.columns(2)
-
-        with col1:
-            groupby_vendas_por_unidade = groupby_sales_por_unidade(df_sales)
-        
-            # Sort by "Valor Líquido" descending
-            groupby_vendas_por_unidade = groupby_vendas_por_unidade.sort_values('Unidade', ascending=True)
+            # Tratativas especiais:
+            df_sales = df_sales.loc[df_sales['Status'] == 'completed']
+            df_sales = df_sales.loc[df_sales['Consultor'] != 'BKO VENDAS']
             
-            grafico_vendas_por_unidade = px.bar(
-                groupby_vendas_por_unidade,
-                x='Unidade',
-                y='Valor líquido',
-                title='Venda Por Unidade',
-                labels={'Valor líquido': 'Valor Líquido', 'Unidade': 'Unidade'},
-            )
-            st.plotly_chart(grafico_vendas_por_unidade)
-
-        with col2:
-            groupby_vendas_por_vendedoras = groupby_sales_por_vendedoras(df_sales)
-
-            grafico_vendas_por_consultor = px.bar(
-                groupby_vendas_por_vendedoras,
-                x='Consultor',
-                y='Valor líquido',
-                title='Venda Por Consultora',
-                labels={'Valor líquido': 'Valor Líquido', 'Consultor': 'Consultora de Vendas'},
-            )
-
-            grafico_vendas_por_consultor = px.bar(
-                groupby_vendas_por_vendedoras,
-                x='Consultor',
-                y='Valor líquido',
-                title='Venda Por Consultora - Top10',
-                labels={'Valor líquido': 'Valor Líquido', 'Consultor': 'Consultora de Vendas'},
-            )
-            st.plotly_chart(grafico_vendas_por_consultor)
-        
-         #####
-        # Div 4: Vendas por Profissão e Procedimento
-        col1, col2 = st.columns(2)
-        with col1:
-            groupby_vendas_por_profissao = groupby_sales_por_profissao(df_sales)
-
-            grafico_vendas_por_profissao_top10 = px.pie(
-                    groupby_vendas_por_profissao,
-                    names='Profissão cliente',
-                    values='Valor líquido', # : 'sum'
-                    title='Valor comprado por Profissão - Top10',
-                    labels={'Valor líquido': 'Valor Comprado', 'Profissão cliente': 'Profissão'},
-                )
-            st.plotly_chart(grafico_vendas_por_profissao_top10)
-
-        with col2:
-            groupby_vendas_por_procedimento = groupby_sales_por_procedimento(df_sales)
-            # st.dataframe(groupby_vendas_por_procedimento)
-
-            grafico_vendas_por_procedimento = px.pie(
-                    groupby_vendas_por_procedimento,
-                    names='bill_items',
-                    values='Valor líquido', # : 'sum'
-                    title='Valor comprado por Procedimento - Top10',
-                    labels={'Valor líquido': 'Valor Comprado', 'bill_items': 'Procedimento'},
-                )
-            st.plotly_chart(grafico_vendas_por_procedimento)
+            # Fix: Ensure proper numeric conversion of 'Valor líquido' for summation
+            # This is the critical step that needs to happen after filtering
+            df_sales['Valor líquido'] = df_sales['Valor líquido'].astype(float)
             
+            # Sum of valor liquido
+            total_sales = df_sales['Valor líquido'].sum()
+            formatted_total = f"R$ {total_sales:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+            st.write(f"Total de vendas: {formatted_total}")
         
+            #####
+            # Div 1: Vendas por Dia
+            groupby_vendas_por_dia = groupby_sales_por_dia(df_sales)
+            grafico_vendas_por_dia = px.bar(
+                groupby_vendas_por_dia,
+                x='Dia',
+                y='Valor líquido',
+                title='Venda Diária',
+                labels={'Valor líquido': 'Valor Líquido', 'Dia': 'Dia do Mês'},
+            )
+            st.plotly_chart(grafico_vendas_por_dia)
+
+            #####
+            # Div 2: Vendas por Loja
+
+            groupby_vendas_dia_loja = groupby_sales_por_unidade(df_sales)
+            
+            pivot_vendas_dia_loja = groupby_vendas_dia_loja.pivot(
+                                    index='Dia',
+                                    columns='Unidade',
+                                    values='Valor líquido')
+            pivot_vendas_dia_loja = pivot_vendas_dia_loja.fillna(0)
+            st.markdown("###### Venda Diária Detalhada")
+            st.dataframe(pivot_vendas_dia_loja)
+
+            #####
+            # Div 3: Vendas por Unidade e Consultor
+            col1, col2 = st.columns(2)
+
+            with col1:
+                groupby_vendas_por_unidade = groupby_sales_por_unidade(df_sales)
+            
+                # Sort by "Valor Líquido" descending
+                groupby_vendas_por_unidade = groupby_vendas_por_unidade.sort_values('Unidade', ascending=True)
+                
+                grafico_vendas_por_unidade = px.bar(
+                    groupby_vendas_por_unidade,
+                    x='Unidade',
+                    y='Valor líquido',
+                    title='Venda Por Unidade',
+                    labels={'Valor líquido': 'Valor Líquido', 'Unidade': 'Unidade'},
+                )
+                st.plotly_chart(grafico_vendas_por_unidade)
+
+            with col2:
+                groupby_vendas_por_vendedoras = groupby_sales_por_vendedoras(df_sales)
+
+                grafico_vendas_por_consultor = px.bar(
+                    groupby_vendas_por_vendedoras,
+                    x='Consultor',
+                    y='Valor líquido',
+                    title='Venda Por Consultora',
+                    labels={'Valor líquido': 'Valor Líquido', 'Consultor': 'Consultora de Vendas'},
+                )
+
+                grafico_vendas_por_consultor = px.bar(
+                    groupby_vendas_por_vendedoras,
+                    x='Consultor',
+                    y='Valor líquido',
+                    title='Venda Por Consultora - Top10',
+                    labels={'Valor líquido': 'Valor Líquido', 'Consultor': 'Consultora de Vendas'},
+                )
+                st.plotly_chart(grafico_vendas_por_consultor)
+            
+            #####
+            # Div 4: Vendas por Profissão e Procedimento
+            col1, col2 = st.columns(2)
+            with col1:
+                groupby_vendas_por_profissao = groupby_sales_por_profissao(df_sales)
+
+                grafico_vendas_por_profissao_top10 = px.pie(
+                        groupby_vendas_por_profissao,
+                        names='Profissão cliente',
+                        values='Valor líquido', # : 'sum'
+                        title='Valor comprado por Profissão - Top10',
+                        labels={'Valor líquido': 'Valor Comprado', 'Profissão cliente': 'Profissão'},
+                    )
+                st.plotly_chart(grafico_vendas_por_profissao_top10)
+
+            with col2:
+                groupby_vendas_por_procedimento = groupby_sales_por_procedimento(df_sales)
+                # st.dataframe(groupby_vendas_por_procedimento)
+
+                grafico_vendas_por_procedimento = px.pie(
+                        groupby_vendas_por_procedimento,
+                        names='bill_items',
+                        values='Valor líquido', # : 'sum'
+                        title='Valor comprado por Procedimento - Top10',
+                        labels={'Valor líquido': 'Valor Comprado', 'bill_items': 'Procedimento'},
+                    )
+                st.plotly_chart(grafico_vendas_por_procedimento)
+                
+            
