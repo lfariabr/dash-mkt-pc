@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import asyncio
 from apiCrm.resolvers.fetch_followUpEntriesReport import fetch_and_process_followUpEntriesReport
 from apiCrm.resolvers.fetch_followUpsCommentsReport import fetch_and_process_followUpsCommentsReport
+from components.date_input import date_input
 
 async def fetch_all_data(start_date, end_date):
     """Run both API calls concurrently to improve performance"""
@@ -37,22 +38,7 @@ def load_page_followUpReport_and_followUpCommentsReport():
     st.markdown("---")
     st.subheader("Selecione o intervalo de datas para o relatório:")
     
-    start_date = None
-    end_date = None
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        start_date = st.date_input(
-            "Data Inicial",
-            value=datetime.now() - timedelta(days=1),
-            max_value=datetime.now()
-        ).strftime('%Y-%m-%d')
-    with col2:
-        end_date = st.date_input(
-            "Data Final",
-            value=datetime.now(),
-            max_value=datetime.now()
-        ).strftime('%Y-%m-%d')
+    start_date, end_date = date_input()
     
     if st.button("Carregar"):
         with st.spinner("Carregando dados..."):

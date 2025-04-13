@@ -24,20 +24,20 @@ st.set_page_config(
 def main():
     # Define the menu structure
     menu_structure = {
-        "Marketing": {
-            "1 - Funil": load_page_marketing,
-            "2 - Histórico": load_page_mkt_leads,
+        "COC": {
+            "1 - Puxada de Leads": load_page_leadsByUser,
+            "2 - Tarefas Pós-Vendas": load_page_followUpReport_and_followUpCommentsReport,
+            "3 - Agd Diário": load_page_appointments_UpdatedAt,
+            "4 - Agd por Usuário": load_page_appointmentsByUser,
         },
-        "Dashboard": {
+        "Dash": {
             "1 - Leads": load_page_leads,
             "2 - Agendamentos": load_page_appointments,
             "3 - Vendas": load_page_sales,
         },
-        "COC": {
-            "1 - Puxada de Leads": load_page_leadsByUser,
-            "2 - Tarefas Pós-Vendas": load_page_followUpReport_and_followUpCommentsReport,
-            "3 - Agd por Usuário": load_page_appointmentsByUser,
-            "4 - Agd Diário": load_page_appointments_UpdatedAt,
+        "Marketing": {
+            "1 - Funil": load_page_marketing,
+            "2 - Histórico": load_page_mkt_leads,
         }
     }
     

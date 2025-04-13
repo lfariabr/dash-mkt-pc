@@ -47,3 +47,15 @@ def groupby_agendamentos_por_dia_pivoted(df_agendamentos):
         .fillna(0)
         .astype(int)
     )
+
+def groupby_agendamentos_por_dia_e_status_transposed(df_agendamentos):
+    """Group appointments by day and transpose."""
+    return (
+        df_agendamentos
+        .groupby(['Data', 'Unidade do agendamento', 'status'])
+        .agg({'ID agendamento': 'nunique'})
+        .reset_index()
+        .pivot(index='Unidade do agendamento', columns=['Data', 'status'], values='ID agendamento')
+        .fillna(0)
+        .astype(int)
+    )

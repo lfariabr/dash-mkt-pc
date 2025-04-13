@@ -6,3 +6,5 @@ procedimento_avaliacao = ['AVALIAÇÃO ESTÉTICA',
 agendamento_status = ['Atendido', 'Falta']
 
 agendamento_status_por_atendente = ["Agendado", "Atendido", "Confirmado", "Aguardando", "Falta"]
+
+agendamentos_do_dia_status = ['Agendado', 'Confirmado']

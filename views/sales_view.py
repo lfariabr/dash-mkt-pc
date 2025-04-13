@@ -15,6 +15,7 @@ from views.sales.sales_grouper import (
                                         groupby_sales_por_profissao,
                                         groupby_sales_por_vendedoras,
                                         groupby_sales_por_procedimento)
+from components.date_input import date_input
 
 def load_data(start_date=None, end_date=None, use_api=False):
     """
@@ -118,22 +119,7 @@ def load_page_sales():
     st.markdown("---")
     st.subheader("Selecione o intervalo de datas para o relatório:")
 
-    start_date = None
-    end_date = None
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        start_date = st.date_input(
-            "Data Inicial",
-            value=datetime.now() - timedelta(days=2),
-            max_value=datetime.now()
-        ).strftime('%Y-%m-%d')
-    with col2:
-        end_date = st.date_input(
-            "Data Final",
-            value=datetime.now(),
-            max_value=datetime.now() + timedelta(days=5)
-        ).strftime('%Y-%m-%d')
+    start_date, end_date = date_input()
     
     if st.button("Carregar"):
         with st.spinner("Carregando dados..."):
@@ -146,10 +132,14 @@ def load_page_sales():
             # Tratativas especiais:
             df_sales = df_sales.loc[df_sales['Status'] == 'completed']
             df_sales = df_sales.loc[df_sales['Consultor'] != 'BKO VENDAS']
+            df_sales = df_sales.loc[df_sales['Unidade'] != 'PRAIA GRANDE']
+
+
             
             # Fix: Ensure proper numeric conversion of 'Valor líquido' for summation
             # This is the critical step that needs to happen after filtering
             df_sales['Valor líquido'] = df_sales['Valor líquido'].astype(float)
+            
             
             # Sum of valor liquido
             total_sales = df_sales['Valor líquido'].sum()

@@ -4,6 +4,7 @@ from pathlib import Path
 from datetime import datetime, timedelta
 import asyncio
 from apiCrm.resolvers.fetch_appointmentsByUserReport import fetch_and_process_appointmentsByUserReport 
+from components.date_input import date_input
 
 def load_data(start_date=None, end_date=None, use_api=True):
     """
@@ -44,26 +45,11 @@ def load_page_appointmentsByUser():
     Main function to display appointments by user data.
     """
     
-    st.title("📊 2 - Agendamentos por Usuário")
+    st.title("📊 4 - Agendamentos por Usuário")
     st.markdown("---")
     st.subheader("Selecione o intervalo de datas para o relatório:")
 
-    start_date = None
-    end_date = None
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        start_date = st.date_input(
-            "Data Inicial",
-            value=datetime.now() - timedelta(days=7),
-            max_value=datetime.now()
-        ).strftime('%Y-%m-%d')
-    with col2:
-        end_date = st.date_input(
-            "Data Final",
-            value=datetime.now(),
-            max_value=datetime.now()
-        ).strftime('%Y-%m-%d')
+    start_date, end_date = date_input()
         
     if st.button("Carregar"):
         with st.spinner("Carregando dados..."):

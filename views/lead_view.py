@@ -19,6 +19,7 @@ from views.leads.leads_grouper import (
                                         groupby_unidade_fonte_organica
                                     )
 from apiCrm.resolvers.fetch_leadReport import fetch_and_process_lead_report
+from components.date_input import date_input
 
 def load_data(start_date=None, end_date=None, use_api=False):
     """
@@ -97,38 +98,11 @@ def load_page_leads():
     st.markdown("---")
     st.subheader("Selecione o intervalo de datas para o relatório:")
     
-    start_date = None
-    end_date = None
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        start_date = st.date_input(
-            "Data Inicial",
-            value=datetime.now() - timedelta(days=2),
-            max_value=datetime.now()
-        ).strftime('%Y-%m-%d')
-    with col2:
-        end_date = st.date_input(
-            "Data Final",
-            value=datetime.now(),
-            max_value=datetime.now()
-        ).strftime('%Y-%m-%d')
+    start_date, end_date = date_input()
     
     if st.button("Carregar"):
         with st.spinner("Carregando dados..."):
             df_leads = load_data(start_date, end_date)
-    
-        # time_filter = st.selectbox(
-        #     "Período", available_periods
-        # )
-        # if time_filter != "Todos os dados":
-        #     df_leads = create_time_filtered_df(df_leads, days_map[time_filter])
-        
-        # unidades = ["Todas"] + sorted(df_leads['Unidade'].unique().tolist())
-        # selected_store = st.selectbox("Unidade", unidades)
-        
-        # if selected_store != "Todas":
-        #     df_leads = df_leads[df_leads['Unidade'] == selected_store]
     
             ########
             # Header

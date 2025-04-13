@@ -11,14 +11,19 @@ from helpers.date import transform_date_from_appointments
 from apiCrm.resolvers.fetch_appointmentReport import fetch_and_process_appointment_report 
 from views.appointments.appointment_columns import appointments_api_clean_columns
 from views.appointments.appointment_cleaner import appointment_crm_columns_reorganizer
-from views.appointments.appointment_types import comparecimento_status, procedimento_avaliacao, agendamento_status
+from views.appointments.appointment_types import (
+                                                comparecimento_status, 
+                                                procedimento_avaliacao, 
+                                                agendamento_status, 
+                                                agendamentos_do_dia_status)
 from views.appointments.appointments_grouper import (
-    groupby_agendamentos_por_dia,
-    groupby_agendamentos_por_unidade,
-    groupby_comparecimentos_por_dia,
-    groupby_comparecimentos_por_unidade,
-    groupby_agendamentos_por_dia_pivoted,
-)
+                                                    groupby_agendamentos_por_dia,
+                                                    groupby_agendamentos_por_unidade,
+                                                    groupby_comparecimentos_por_dia,
+                                                    groupby_comparecimentos_por_unidade,
+                                                    groupby_agendamentos_por_dia_pivoted,
+                                                    groupby_agendamentos_por_dia_e_status_transposed)
+from components.date_input import date_input
 
 def load_data(start_date=None, end_date=None, use_api=False):
     """
@@ -113,22 +118,7 @@ def load_page_appointments():
     st.markdown("---")
     st.subheader("Selecione o intervalo de datas para o relatório:")
 
-    start_date = None
-    end_date = None
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        start_date = st.date_input(
-            "Data Inicial",
-            value=datetime.now() - timedelta(days=2),
-            max_value=datetime.now()
-        ).strftime('%Y-%m-%d')
-    with col2:
-        end_date = st.date_input(
-            "Data Final",
-            value=datetime.now(),
-            max_value=datetime.now() + timedelta(days=5)
-        ).strftime('%Y-%m-%d')
+    start_date, end_date = date_input()
         
     if st.button("Carregar"):
         with st.spinner("Carregando dados..."):
@@ -150,6 +140,11 @@ def load_page_appointments():
             # Filter for comparecimentos
             df_appointments_comparecimentos = df_appointments[
                                             (df_appointments['status'].isin(comparecimento_status)) 
+                                            & (df_appointments['Procedimento'].isin(procedimento_avaliacao))]
+
+            # Filter for appointments (agendamento do dia / futuro)
+            df_appointments_agendamentos_futuros = df_appointments[
+                                            (df_appointments['status'].isin(agendamentos_do_dia_status)) 
                                             & (df_appointments['Procedimento'].isin(procedimento_avaliacao))]
 
             # Removing the hour from "Data"
@@ -216,33 +211,34 @@ def load_page_appointments():
 
             ########
             # Div 3: Tabela de Comparecimentos por Dia e por Unidade
-            df_appointments_comparecimentos_by_day = groupby_agendamentos_por_dia_pivoted(df_appointments_comparecimentos)
+            today = datetime.now()
+            last_day = today - timedelta(days=1)
+            mask_date_interval = (df_appointments_comparecimentos['Data'] >= last_day.date()) & (df_appointments_comparecimentos['Data'] <= today.date())
+            df_appointments_comparecimentos_by_day = groupby_agendamentos_por_dia_pivoted(df_appointments_comparecimentos[mask_date_interval])
             st.write("Comparecimentos por Dia e por Unidade:")
             st.dataframe(df_appointments_comparecimentos_by_day)
 
             ########
-            # TODO fix this
-            
             # Div 4: Agenda do dia:
-            today = end_date # datetime.now().strftime('%d-%m-%Y')
-            df_appointments_today = df_appointments_agendamentos[df_appointments_agendamentos['Data'] == today]
-            # Groupby day and store
-            df_appointments_today_by_day_and_store = groupby_agendamentos_por_dia_pivoted(df_appointments_today)
-            st.write("Agenda do dia:")
+            mask_date_interval_next_4_days = (df_appointments_agendamentos_futuros['Data'] >= today.date()) & (df_appointments_agendamentos_futuros['Data'] <= (today.date() + timedelta(days=3)))
+            df_appointments_today = df_appointments_agendamentos_futuros[mask_date_interval_next_4_days]
+            df_appointments_today_by_day_and_store = groupby_agendamentos_por_dia_e_status_transposed(df_appointments_today)
+
+            st.write(f"Agenda dos próximos 4 dias")
             st.dataframe(df_appointments_today_by_day_and_store)
 
-            # DEBUGGING:
-            df_appointments_clean = df_appointments[appointments_api_clean_columns]        
-            df_appointments_clean = appointment_crm_columns_reorganizer(df_appointments_clean)
-            st.write("Debugging: df_appointments")
-            st.dataframe(df_appointments_clean)
+            # # DEBUGGING:
+            # df_appointments_clean = df_appointments[appointments_api_clean_columns]        
+            # df_appointments_clean = appointment_crm_columns_reorganizer(df_appointments_clean)
+            # st.write("Debugging: df_appointments")
+            # st.dataframe(df_appointments_clean)
 
-            df_appointments_agendamentos_clean = df_appointments_agendamentos[appointments_api_clean_columns]
-            df_appointments_agendamentos_clean = appointment_crm_columns_reorganizer(df_appointments_agendamentos_clean)
-            st.write("Debugging: df_appointments_agendamentos")
-            st.dataframe(df_appointments_agendamentos_clean)
+            # df_appointments_agendamentos_clean = df_appointments_agendamentos[appointments_api_clean_columns]
+            # df_appointments_agendamentos_clean = appointment_crm_columns_reorganizer(df_appointments_agendamentos_clean)
+            # st.write("Debugging: df_appointments_agendamentos")
+            # st.dataframe(df_appointments_agendamentos_clean)
 
-            df_appointments_comparecimentos_clean = df_appointments_comparecimentos[appointments_api_clean_columns]
-            df_appointments_comparecimentos_clean = appointment_crm_columns_reorganizer(df_appointments_comparecimentos_clean)
-            st.write("Debugging: df_appointments_comparecimentos")
-            st.dataframe(df_appointments_comparecimentos_clean)    
+            # df_appointments_comparecimentos_clean = df_appointments_comparecimentos[appointments_api_clean_columns]
+            # df_appointments_comparecimentos_clean = appointment_crm_columns_reorganizer(df_appointments_comparecimentos_clean)
+            # st.write("Debugging: df_appointments_comparecimentos")
+            # st.dataframe(df_appointments_comparecimentos_clean)    

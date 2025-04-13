@@ -7,6 +7,7 @@ from apiCrm.resolvers.fetch_appointmentReport import fetch_and_process_appointme
 from views.appointments.appointment_columns import appointments_api_clean_columns
 from views.appointments.appointment_cleaner import appointment_crm_columns_reorganizer
 from views.appointments.appointment_types import comparecimento_status, procedimento_avaliacao, agendamento_status_por_atendente
+from components.date_input import date_input
 
 def load_data(start_date=None, end_date=None, use_api=False):
     """
@@ -97,26 +98,11 @@ def create_time_filtered_df(df, days=None):
 def load_page_appointments_UpdatedAt():
     """Main function to display leads data."""
     
-    st.title("📊 2 - Agendamentos")
+    st.title("📊 3 - Agendamento por Período de Atendimento")
     st.markdown("---")
     st.subheader("Selecione o intervalo de datas para o relatório:")
 
-    start_date = None
-    end_date = None
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        start_date = st.date_input(
-            "Data Inicial",
-            value=datetime.now() - timedelta(days=2),
-            max_value=datetime.now()
-        ).strftime('%Y-%m-%d')
-    with col2:
-        end_date = st.date_input(
-            "Data Final",
-            value=datetime.now(),
-            max_value=datetime.now() + timedelta(days=5)
-        ).strftime('%Y-%m-%d')
+    start_date, end_date = date_input()
         
     if st.button("Carregar"):
         with st.spinner("Carregando dados..."):
