@@ -29,7 +29,7 @@ async def fetch_appointmentReport(session, start_date: str, end_date: str) -> Li
     """
     current_page = 1
     all_appointments = []
-    api_url = os.getenv('API_CRM_URL', 'https://open-api.queromeubotox.com.br/graphql')
+    api_url = os.getenv('API_CRM_URL', 'https://open-api.eprocorpo.com.br/graphql')
 
     # Updated query with correct pagination parameters
     query = '''

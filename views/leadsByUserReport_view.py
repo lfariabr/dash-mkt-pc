@@ -3,18 +3,31 @@ import pandas as pd
 from datetime import datetime, timedelta
 import asyncio
 from apiCrm.resolvers.fetch_leadsByUserReport import fetch_and_process_leadsByUserReport
+from apiCrm.resolvers.fetch_appointmentReport import fetch_and_process_appointment_report
+
+async def fetch_leads_and_appointments(start_date, end_date):
+    """
+    Run both API calls concurrently to improve performance.
+    """
+    leads_data = fetch_and_process_leadsByUserReport(start_date, end_date)
+    appointments_data = fetch_and_process_appointment_report(start_date, end_date)
+
+    # Executing both fetches
+    leads_data, appointments_data = await asyncio.gather(leads_data, appointments_data)
+    return leads_data, appointments_data
+
 
 def load_data(start_date=None, end_date=None):
     if start_date and end_date:
         try:
-            leads_data = asyncio.run(fetch_and_process_leadsByUserReport(start_date, end_date))
-            return pd.DataFrame(leads_data)
+            leads_data, appointments_data = asyncio.run(fetch_leads_and_appointments(start_date, end_date))
+            return pd.DataFrame(leads_data), pd.DataFrame(appointments_data)
         except Exception as e:
             st.error(f"Erro ao carregar dados: {str(e)}")
-            return pd.DataFrame()
+            return pd.DataFrame(), pd.DataFrame()
     else:
         st.warning("Por favor, selecione um intervalo de datas.")
-        return pd.DataFrame()
+        return pd.DataFrame(), pd.DataFrame()
 
 def load_page_leadsByUser():
     """Main function to display leads by user data."""
@@ -43,9 +56,9 @@ def load_page_leadsByUser():
     
     if st.button("Carregar"):
         with st.spinner("Carregando dados..."):
-            df_leadsByUser = load_data(start_date, end_date)
+            df_leadsByUser, df_appointments = load_data(start_date, end_date)
             
-            if df_leadsByUser.empty:
+            if df_leadsByUser.empty or df_appointments.empty:
                 st.warning("Não foram encontrados dados para o período selecionado.")
             else:
                 # Treating data columns:
@@ -159,3 +172,17 @@ def load_page_leadsByUser():
                 
                 st.subheader("Atendentes do Turno da Tarde")
                 st.dataframe(df_atendentes_tarde[display_columns], hide_index=True)
+
+                # Display appointments dataframe
+                st.subheader("Agendamentos")
+                desired_appointment_columns = [
+                    'id',
+                    'client_id',
+                    'store',
+                    'procedure',
+                    'startDate',
+                    'status',
+                    'createdBy',
+                    'createdBy_group', 'updatedBy' 
+                ]
+                st.dataframe(df_appointments[desired_appointment_columns], hide_index=True)
