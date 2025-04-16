@@ -4,29 +4,31 @@ from datetime import datetime, timedelta
 import asyncio
 from apiCrm.resolvers.fetch_followUpEntriesReport import fetch_and_process_followUpEntriesReport
 from apiCrm.resolvers.fetch_followUpsCommentsReport import fetch_and_process_followUpsCommentsReport
+from apiCrm.resolvers.fetch_grossSalesReport import fetch_and_process_grossSales_report
 from components.date_input import date_input
 
 async def fetch_all_data(start_date, end_date):
     """Run both API calls concurrently to improve performance"""
     entries_task = fetch_and_process_followUpEntriesReport(start_date, end_date)
     comments_task = fetch_and_process_followUpsCommentsReport(start_date, end_date)
+    gross_sales_task = fetch_and_process_grossSales_report(start_date, end_date)
     
     # Execute both tasks concurrently
-    entries_data, comments_data = await asyncio.gather(entries_task, comments_task)
-    return entries_data, comments_data
+    entries_data, comments_data, gross_sales_data = await asyncio.gather(entries_task, comments_task, gross_sales_task)
+    return entries_data, comments_data, gross_sales_data
 
 def load_data(start_date=None, end_date=None):
     if start_date and end_date:
         try:
             # Run both queries concurrently with a single asyncio.run call
-            entries_data, comments_data = asyncio.run(fetch_all_data(start_date, end_date))
-            return pd.DataFrame(entries_data), pd.DataFrame(comments_data)
+            entries_data, comments_data, gross_sales_data = asyncio.run(fetch_all_data(start_date, end_date))
+            return pd.DataFrame(entries_data), pd.DataFrame(comments_data), pd.DataFrame(gross_sales_data)
         except Exception as e:
             st.error(f"Erro ao carregar dados: {str(e)}")
-            return pd.DataFrame(), pd.DataFrame()
+            return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
     else:
         st.warning("Por favor, selecione um intervalo de datas.")
-        return pd.DataFrame(), pd.DataFrame()
+        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
 
 def load_page_followUpReport_and_followUpCommentsReport():
@@ -43,7 +45,7 @@ def load_page_followUpReport_and_followUpCommentsReport():
     if st.button("Carregar"):
         with st.spinner("Carregando dados..."):
 
-            df_entries, df_comments = load_data(start_date, end_date)
+            df_entries, df_comments, df_gross_sales = load_data(start_date, end_date)
             
             st.markdown("---")
             st.subheader("Novos Pós-Vendas")
@@ -192,3 +194,34 @@ def load_page_followUpReport_and_followUpCommentsReport():
             
             st.subheader("Consultoras do Turno da Tarde")
             st.dataframe(df_comments_consultoras_tarde[display_columns], hide_index=True)
+
+            # Special treatments
+            sales_display_columns = ['createdBy', 'chargableTotal', 'statusLabel']
+            df_gross_sales['chargableTotal'] = pd.to_numeric(df_gross_sales['chargableTotal'], errors='coerce').fillna(0)
+            df_gross_sales['chargableTotal'] = df_gross_sales['chargableTotal'] / 100
+            df_gross_sales['chargableTotal'] = df_gross_sales['chargableTotal'].astype(float)
+            df_gross_sales_filtered = df_gross_sales[sales_display_columns]
+            
+            # Groupbying Sales per Consultora
+            df_gross_sales_grouped = df_gross_sales_filtered.groupby('createdBy').agg({'chargableTotal': 'sum'}).reset_index()
+            df_gross_sales_grouped = df_gross_sales_grouped.rename(columns={'createdBy': 'Consultora de Vendas', 'chargableTotal': 'Valor líquido'})
+            
+            # Filter to show only consultoras from the lists
+            df_gross_sales_manha = df_gross_sales_grouped[df_gross_sales_grouped['Consultora de Vendas'].isin(consultoras_manha.keys())]
+            df_gross_sales_tarde = df_gross_sales_grouped[df_gross_sales_grouped['Consultora de Vendas'].isin(consultoras_tarde.keys())]
+            
+            # Sort by Consultora de Vendas
+            df_gross_sales_manha = df_gross_sales_manha.sort_values(by='Valor líquido', ascending=False)
+            df_gross_sales_tarde = df_gross_sales_tarde.sort_values(by='Valor líquido', ascending=False)
+            
+            # Display dataframes
+            st.subheader("Consultoras do Turno da Manhã - Total de Vendas")
+            st.dataframe(df_gross_sales_manha, hide_index=True)
+            
+            st.subheader("Consultoras do Turno da Tarde - Total de Vendas")
+            st.dataframe(df_gross_sales_tarde, hide_index=True)
+
+            # TOTAL SUM OF DF_GROSS_SALES:
+            total_sum = df_gross_sales['Valor líquido'].sum()
+            st.subheader(f"Total de Vendas: R$ {total_sum:.2f}")
+            
