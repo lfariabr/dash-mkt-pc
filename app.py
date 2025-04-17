@@ -14,6 +14,7 @@ from views.leadsByUserReport_view import load_page_leadsByUser
 from views.followUpReport_view import load_page_followUpReport_and_followUpCommentsReport
 from views.appointmentByUser_view import load_page_appointmentsByUser
 from views.appointments_view_UpdatedAt import load_page_appointments_UpdatedAt
+from views.apt_testing import load_page_appointmentsSamir
 
 st.set_page_config(
     page_title="Pró-Corpo BI",
@@ -29,6 +30,7 @@ def main():
             "2 - Tarefas Pós-Vendas": load_page_followUpReport_and_followUpCommentsReport,
             "3 - Agd Diário": load_page_appointments_UpdatedAt,
             "4 - Agd por Usuário": load_page_appointmentsByUser,
+            "5 - Testando": load_page_appointmentsSamir,
         },
         "Dash": {
             "1 - Leads": load_page_leads,

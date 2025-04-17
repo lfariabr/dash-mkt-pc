@@ -182,7 +182,10 @@ def load_page_leadsByUser():
                     'procedure',
                     'startDate',
                     'status',
-                    'createdBy',
-                    'createdBy_group', 'updatedBy' 
-                ]
+                    'createdAt_formatted',    # Use the formatted date
+                    'createdBy_name',         # Use the fallback logic value
+                    'createdBy_group',        # Use the fallback logic value
+                    'updatedBy'
+                ]   
                 st.dataframe(df_appointments[desired_appointment_columns], hide_index=True)
+                st.dataframe(df_appointments)
