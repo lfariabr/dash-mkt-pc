@@ -64,3 +64,5 @@ def load_page_appointmentsSamir():
             # Header
             
             st.dataframe(df_appointments)
+
+                

@@ -163,21 +163,6 @@ async def fetch_appointmentReportSamir(session, start_date: str, end_date: str) 
                 logger.info("No appointments found in the specified date range")
                 return all_appointments
             
-            # Print the JSON structure of the first appointment if one exists
-            if appointments_data and len(appointments_data) > 0:
-                first_appointment = appointments_data[0]
-                
-                # # Print full structure with pretty formatting
-                # logger.info("First appointment data structure:")
-                # logger.info(json.dumps(first_appointment, indent=2, ensure_ascii=False))
-                
-                # # Also print specific nested structures we're interested in
-                # logger.info("oldestParent structure:")
-                # logger.info(json.dumps(first_appointment.get('oldestParent', {}), indent=2, ensure_ascii=False))
-                
-                # logger.info("updatedBy structure:")
-                # logger.info(json.dumps(first_appointment.get('updatedBy', {}), indent=2, ensure_ascii=False))
-            
             meta = appointments_report.get('meta', {})
             if meta is None:
                 meta = {}  # Provide a default empty dict if meta is None
@@ -276,42 +261,49 @@ async def fetch_appointmentReportSamir(session, start_date: str, end_date: str) 
                             logger.error(f"Error formatting createdAt date: {str(e)}")
                             formatted_created_at = created_at  # Fallback to original format
 
-                    
+                    # TODO
+                    # These are bringing empty values while excel is bringing correct ones. Please review implementation following Samir' comments
+                    # Nome da primeira atendente: S -> oldestParent.createdBy.name (quando disponível) ou createdBy.name (caso contrário)
+                    # Grupo da primeira atendente: T -> oldestParent.createdBy.group.name (quando disponível) ou createdBy.group.name (caso contrário)
+
                     
                     # Map fields to the expected column names for the UI, with default values
                     transformed_appointment = {
-                        'id': appointment.get('id', ''),
-                        'client_id': customer.get('id', ''),
-                        'name': customer.get('name', ''),
-                        'telephones': telephones,
-                        'email': customer.get('email', ''),
-                        'store': store.get('name', ''),
-                        'procedure': procedure.get('name', ''),
-                        'procedure_groupLabel': procedure.get('groupLabel', ''),
-                        'employee': employee.get('name', ''),
-                        'startDate': appointment.get('startDate', ''),
-                        'endDate': appointment.get('endDate', ''),
-                        'status': status.get('label', ''),
-                        'comments': comments,
-                        'beforePhotoUrl': appointment.get('beforePhotoUrl', ''),
-                        'batchPhotoUrl': appointment.get('batchPhotoUrl', ''),
-                        'afterPhotoUrl': appointment.get('afterPhotoUrl', ''),
-                        'createdAt': formatted_created_at,
-                        'createdBy': created_by,
-                        'createdBy_group': created_by_group,
-                        'source': customer_source.get('title', ''),
-                        'updatedAt': appointment.get('updatedAt', ''),
-                        'updatedBy': updatedBy.get('name', ''),
-                        'latestProgressComment': latestProgressComment.get('comment', ''),
-                        'latestProgressDate': latestProgressComment.get('createdAt', ''),
-                        'latestProgressUser': latestProgressComment_user.get('name', '')
+                        'ID agendamento': appointment.get('id', ''),                      # A -> id
+                        'ID cliente': customer.get('id', ''),                             # B -> customer.id
+                        'Nome cliente': customer.get('name', ''),                         # C -> customer.name
+                        'CPF': customer.get('taxvatFormatted', ''),                       # D -> customer.taxvatFormatted
+                        'Email': customer.get('email', ''),                               # E -> customer.email
+                        'Telefone': telephones,                                           # F -> customer.telephones.*.number
+                        'Endereço': customer.get('addressLine', ''),                      # G -> customer.addressLine
+                        'Fonte de cadastro do cliente': customer_source.get('title', ''), # H -> customer.source.title
+                        'Unidade do agendamento': store.get('name', ''),                  # I -> store.name
+                        'Procedimento': procedure.get('name', ''),                        # J -> procedure.name
+                        'Prestador': employee.get('name', ''),                            # K -> employee.name
+                        'Grupo do procedimento': procedure.get('groupLabel', ''),         # L -> procedure.groupLabel
+                        'Data': appointment.get('startDate', ''),                          # M -> startDate
+                        'Hora': '',                                                       # N -> startDate time
+                        'Status': status.get('label', ''),                                # O -> status.label
+                        'Duração': '',                                                    # P -> startDate + endDate
+                        'Máquina': None,                                                  # Q -> NULL
+                        'Data primeira atendente': formatted_created_at,                  # R -> oldestParent.createdAt
+                        'Nome da primeira atendente': created_by if isinstance(created_by, str) else '', # S -> oldestParent.createdBy.name
+                        'Grupo da primeira atendente': created_by_group,                  # T -> oldestParent.createdBy.group.name
+                        'Observação (mais recente)': comments,                             # U -> comments.comment
+                        'Última data de alteração do status': appointment.get('updatedAt', ''), # V -> updatedAt
+                        'Último usuário a alterar o status': updatedBy.get('name', ''),   # W -> updatedBy.name
+                        'Possui evolução?': 'Sim' if latestProgressComment.get('comment', '') else 'Não', # X -> latestProgressComment.comment
+                        'Comentário mais recente da evolução': latestProgressComment.get('comment', ''),  # Y -> latestProgressComment.comment
+                        'Data mais recente da evolução': latestProgressComment.get('createdAt', ''), # Z -> latestProgressComment.createdAt
+                        'Usuário mais recente da evolução': latestProgressComment_user.get('name', ''), # AA -> latestProgressComment.user.name
+                        'Tem foto do lote?': 'Sim' if appointment.get('batchPhotoUrl', '') else 'Não',           # AB -> batchPhotoUrl (if exists "Sim", otherwise "Não")
+                        'Tem foto do antes?': 'Sim' if appointment.get('beforePhotoUrl', '') else 'Não',         # AC -> beforePhotoUrl (if exists "Sim", otherwise "Não") 
+                        'Tem foto do depois?': 'Sim' if appointment.get('afterPhotoUrl', '') else 'Não'          # AD -> afterPhotoUrl (if exists "Sim", otherwise "Não")
                     }
                     processed_appointments.append(transformed_appointment)
                 except Exception as e:
                     logger.error(f"Error processing appointment: {str(e)}")
                     continue
-            logger.info("DEBUG - oldestParent format:")
-            logger.info(json.dumps(oldestParent, indent=2, ensure_ascii=False))
             return processed_appointments
             
         except Exception as e:
