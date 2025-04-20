@@ -137,9 +137,7 @@ async def fetch_appointmentReportSamir(session, start_date: str, end_date: str) 
             logger.error(f"Failed initial appointments fetch: {error_msg}")
             return all_appointments
             
-        # If we got here, the query structure works
         try:
-            # Check if we have appointment data
             if 'data' not in data:
                 logger.error("No 'data' field in GraphQL response")
                 return all_appointments
@@ -165,36 +163,28 @@ async def fetch_appointmentReportSamir(session, start_date: str, end_date: str) 
             
             meta = appointments_report.get('meta', {})
             if meta is None:
-                meta = {}  # Provide a default empty dict if meta is None
+                meta = {}
             
-            # Get pagination info with fallbacks
             current_page = meta.get('currentPage', 1)
-            per_page = meta.get('perPage', 0)
             last_page = meta.get('lastPage', 1)
             
-            # Copy raw appointments directly
             all_appointments.extend(appointments_data)
             
-            # If there are more pages, fetch them all
             if current_page < last_page:
                 logger.info(f"Fetching remaining {last_page - current_page} pages")
                 
                 for page in range(current_page + 1, last_page + 1):
                     logger.info(f"Fetching page {page} of {last_page}")
                     
-                    # Update pagination variables
                     variables['currentPage'] = page
                     
                     try:
-                        # Make the GraphQL request for this page
                         page_data = await fetch_graphql(session, api_url, query, variables)
                         
                         if page_data and 'data' in page_data and 'appointmentsReport' in page_data['data']:
                             page_appointments_report = page_data['data']['appointmentsReport']
                             if page_appointments_report and 'data' in page_appointments_report:
-                                page_appointments = page_appointments_report['data']
-                                
-                                # Add raw page appointments to our list
+                                page_appointments = page_appointments_report['data']                                
                                 all_appointments.extend(page_appointments)
                                 logger.info(f"Added {len(page_appointments)} appointments from page {page}")
                             else:
@@ -202,11 +192,9 @@ async def fetch_appointmentReportSamir(session, start_date: str, end_date: str) 
                         else:
                             logger.warning(f"Invalid response structure for page {page}")
                     except Exception as e:
-                        logger.error(f"Error fetching page {page}: {str(e)}")
-            
+                        logger.error(f"Error fetching page {page}: {str(e)}")            
             logger.info(f"Total appointments fetched: {len(all_appointments)}")
             
-            # Process the oldestParent data as per Samir's requirements
             processed_appointments = []
             for appointment in all_appointments:
                 if appointment is None:
@@ -223,50 +211,61 @@ async def fetch_appointmentReportSamir(session, start_date: str, end_date: str) 
                     oldestParent = appointment.get('oldestParent', {}) or {}
                     latestProgressComment = appointment.get('latestProgressComment', {}) or {}
                     
-                    # Safely extract nested objects one level deeper
+                    # Nested objects one level deeper
                     customer_source = customer.get('source', {}) or {}
                     latestProgressComment_user = latestProgressComment.get('user', {}) or {}
                     
-                    # Extract telephones with safety checks
+                    # Telephones with safety checks
                     telephones_data = customer.get('telephones', []) or []
                     telephones = ', '.join([tel.get('number', '') for tel in telephones_data if tel and isinstance(tel, dict)]) if telephones_data else ''
                     
-                    # Extract comments with safety checks
+                    # Comments with safety checks
                     comments_data = appointment.get('comments', []) or []
                     comments = '; '.join([c.get('comment', '') for c in comments_data if c and isinstance(c, dict)]) if comments_data else ''
                     
-                    # Implementation of fallback logic for Samir's requirements:
+                    # TODO: Implementation of fallback logic for Samir's requirements:
                     # R -> oldestParent.createdAt (quando disponível) ou updatedAt (caso contrário)
                     # S -> oldestParent.createdBy.name (quando disponível) ou updatedBy.name (caso contrário)
-                    # T -> oldestParent.createdBy.group.name (quando disponível) - no good fallback
+                    # T -> oldestParent.createdBy.group.name (quando disponível) ou updatedBy.group.name (caso contrário)
+                    def safe_get(d, path):
+                        for key in path:
+                            if not isinstance(d, dict) or key not in d:
+                                return None
+                            d = d[key]
+                        return d
+
+                    # Nome da primeira atendente (S): oldestParent.createdBy.name → fallback: appointment.createdBy.name
+                    created_by_name = safe_get(oldestParent, ["createdBy", "name"]) or safe_get(appointment, ["createdBy", "name"]) or "_não disponível"
+                    if created_by_name != "_não disponível":
+                        print(f"Nome da primeira atendente: {created_by_name}")
+                    else:
+                        print("Nome da primeira atendente not found in either oldestParent or appointment")
+
+                    # Grupo da primeira atendente (T): oldestParent.createdBy.group.name → fallback: appointment.createdBy.group.name
+                    created_by_group = safe_get(oldestParent, ["createdBy", "group", "name"]) or safe_get(appointment, ["createdBy", "group", "name"]) or "_não disponível"
+                    if created_by_group != "_não disponível":
+                        print(f"Grupo da primeira atendente: {created_by_group}")
+                    else:
+                        print("Grupo da primeira atendente not found in either oldestParent or appointment")
+                    
                     created_at = oldestParent.get('createdAt') or appointment.get('updatedAt', '')
-
-                    created_by = (oldestParent.get('createdBy') or {}).get('name') or updatedBy.get('name', '')
-                    created_by_group = "Não disponível"
-
-                    created_by = oldestParent.get('createdBy') if oldestParent else None
-                    if created_by:
-                        group = created_by.get('group')
-                        if group:
-                            created_by_group = group.get('name', "Não disponível")
+                    # created_by = oldestParent.get('createdBy') if oldestParent else None
+                    # if created_by:
+                    #     created_by_name = created_by.get('name', '')
+                    #     group = created_by.get('group')
+                    #     if group:
+                    #         created_by_group = group.get('name', "_não disponível")
                     
                     # Format createdAt as dd/MM/yyyy HH:mm if it's not empty
                     formatted_created_at = ''
                     if created_at:
                         try:
-                            # Parse ISO format date and reformat
                             dt = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
                             formatted_created_at = dt.strftime('%d/%m/%Y %H:%M')
                         except Exception as e:
                             logger.error(f"Error formatting createdAt date: {str(e)}")
                             formatted_created_at = created_at  # Fallback to original format
 
-                    # TODO
-                    # These are bringing empty values while excel is bringing correct ones. Please review implementation following Samir' comments
-                    # Nome da primeira atendente: S -> oldestParent.createdBy.name (quando disponível) ou createdBy.name (caso contrário)
-                    # Grupo da primeira atendente: T -> oldestParent.createdBy.group.name (quando disponível) ou createdBy.group.name (caso contrário)
-
-                    
                     # Map fields to the expected column names for the UI, with default values
                     transformed_appointment = {
                         'ID agendamento': appointment.get('id', ''),                      # A -> id
@@ -287,7 +286,7 @@ async def fetch_appointmentReportSamir(session, start_date: str, end_date: str) 
                         'Duração': '',                                                    # P -> startDate + endDate
                         'Máquina': None,                                                  # Q -> NULL
                         'Data primeira atendente': formatted_created_at,                  # R -> oldestParent.createdAt
-                        'Nome da primeira atendente': created_by if isinstance(created_by, str) else '', # S -> oldestParent.createdBy.name
+                        'Nome da primeira atendente': created_by_name,                    # S -> oldestParent.createdBy.name
                         'Grupo da primeira atendente': created_by_group,                  # T -> oldestParent.createdBy.group.name
                         'Observação (mais recente)': comments,                             # U -> comments.comment
                         'Última data de alteração do status': appointment.get('updatedAt', ''), # V -> updatedAt
