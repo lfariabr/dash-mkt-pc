@@ -5,9 +5,7 @@ from pathlib import Path
 from datetime import datetime, timedelta
 import asyncio
 from data.stores import stores_to_remove
-from data.date_intervals import days_map, available_periods
 from components.headers import header_appointments
-from helpers.date import transform_date_from_appointments
 from apiCrm.resolvers.fetch_appointmentReport import fetch_and_process_appointment_report 
 from views.appointments.appointment_columns import appointments_api_clean_columns
 from views.appointments.appointment_cleaner import appointment_crm_columns_reorganizer
@@ -48,44 +46,6 @@ def load_data(start_date=None, end_date=None, use_api=False):
                 return load_data(use_api=False)
             
             df = pd.DataFrame(appointments_data)
-            
-            # Map API field names to match the excel structure
-            df = df.rename(columns={
-                'id': 'ID agendamento',
-                'client_id': 'ID cliente',
-                'startDate': 'Data',
-                'endDate': 'Data término',
-                'status_code': 'Status Código',
-                'status_label': 'Status',
-                'name': 'Nome cliente',
-                'email': 'Email',
-                'telephones': 'Telefone',
-                'addressLine': 'Endereço',
-                'taxvatFormatted': 'CPF',
-                'source': 'Fonte de cadastro do cliente',
-                'store': 'Unidade do agendamento',
-                'procedure': 'Procedimento',
-                'procedure_groupLabel': 'Grupo do procedimento',
-                'employee': 'Prestador',
-                'oldestParent_createdBy_group': 'Grupo da primeira atendente',
-                'comments': 'Observação (mais recente)', # TODO pending from this on...
-                'updatedAt': 'Data de atualização',
-                'updatedBy': 'Atualizado por',
-                'createdBy': 'Nome da primeira atendente',
-                'createdBy_group': 'Grupo da Primeira atendente',
-                'createdAt': 'Data de criação',
-                'latest_comment': 'Último comentário',
-                'latest_comment_createdAt': 'Data do último comentário',
-                'latest_comment_user': 'Usuário do último comentário',
-                'oldestParent_createdAt': 'Data do primeiro comentário',
-                'oldestParent_createdBy_name': 'Primeiro comentário',
-                'beforePhotoUrl': 'Antes',
-                'batchPhotoUrl': 'Em processo',
-                'afterPhotoUrl': 'Depois',
-            })
-            
-            # Convert startDate to datetime
-            df['Data'] = pd.to_datetime(df['Data'])
             
             # Format the date for 'Dia' column (single step)
             df['Dia'] = df['Data'].dt.strftime('%d-%m-%Y')

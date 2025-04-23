@@ -3,14 +3,15 @@ import pandas as pd
 from datetime import datetime, timedelta
 import asyncio
 from apiCrm.resolvers.fetch_leadsByUserReport import fetch_and_process_leadsByUserReport
-from apiCrm.resolvers.fetch_appointmentReport import fetch_and_process_appointment_report
+from apiCrm.resolvers.fetch_appointmentReport import fetch_and_process_appointment_report_created_at
+from views.appointments.appointment_types import comparecimento_status, procedimento_avaliacao, agendamento_status_por_atendente
 
 async def fetch_leads_and_appointments(start_date, end_date):
     """
     Run both API calls concurrently to improve performance.
     """
     leads_data = fetch_and_process_leadsByUserReport(start_date, end_date)
-    appointments_data = fetch_and_process_appointment_report(start_date, end_date)
+    appointments_data = fetch_and_process_appointment_report_created_at(start_date, end_date)
 
     # Executing both fetches
     leads_data, appointments_data = await asyncio.gather(leads_data, appointments_data)
@@ -173,19 +174,26 @@ def load_page_leadsByUser():
                 st.subheader("Atendentes do Turno da Tarde")
                 st.dataframe(df_atendentes_tarde[display_columns], hide_index=True)
 
-                # Display appointments dataframe
-                st.subheader("Agendamentos")
-                desired_appointment_columns = [
-                    'id',
-                    'client_id',
-                    'store',
-                    'procedure',
-                    'startDate',
-                    'status',
-                    'createdAt_formatted',    # Use the formatted date
-                    'createdBy_name',         # Use the fallback logic value
-                    'createdBy_group',        # Use the fallback logic value
-                    'updatedBy'
-                ]   
-                st.dataframe(df_appointments[desired_appointment_columns], hide_index=True)
-                st.dataframe(df_appointments)
+                # Filter for appointments (agendamentos)
+                df_appointments_agendamentos = df_appointments[
+                                            (df_appointments['Status'].isin(agendamento_status_por_atendente)) 
+                                            & (df_appointments['Procedimento'].isin(procedimento_avaliacao))]
+
+                # Appointments of Atendentes
+                st.subheader("Agendamentos do Turno da Manhã")
+                df_appointments_atendentes_manha = df_appointments_agendamentos[df_appointments_agendamentos['Nome da primeira atendente'].isin(atendentes_puxadas_manha.keys())]
+                # df_appointments_atendentes_manha['data_primeira_atendente_is_start_date?'] ? # TODO
+                st.dataframe(df_appointments_atendentes_manha, hide_index=True)
+                
+                st.subheader("Agendamentos do Turno da Tarde")
+                df_appointments_atendentes_tarde = df_appointments_agendamentos[df_appointments_agendamentos['Nome da primeira atendente'].isin(atendentes_puxadas_tarde.keys())]
+                st.dataframe(df_appointments_atendentes_tarde, hide_index=True)
+
+                # Debug dados Atendente "Ingrid Caroline Santos Andrade"
+                st.subheader("Debug dados Atendente 'Ingrid Caroline Santos Andrade'")
+                df_appointments_atendentes_ingrid = df_appointments_agendamentos[df_appointments_agendamentos['Nome da primeira atendente'] == 'Ingrid Caroline Santos Andrade']
+                st.dataframe(df_appointments_atendentes_ingrid, hide_index=True)
+
+                
+                
+                

@@ -13,7 +13,7 @@ from views.sales_view import load_page_sales
 from views.leadsByUserReport_view import load_page_leadsByUser
 from views.followUpReport_view import load_page_followUpReport_and_followUpCommentsReport
 from views.appointmentByUser_view import load_page_appointmentsByUser
-from views.appointments_view_UpdatedAt import load_page_appointments_UpdatedAt
+from views.appointments_view_CreatedAt import load_page_appointments_CreatedAt
 from views.apt_testing import load_page_appointmentsSamir
 
 st.set_page_config(
@@ -28,9 +28,8 @@ def main():
         "COC": {
             "1 - Puxada de Leads": load_page_leadsByUser,
             "2 - Tarefas Pós-Vendas": load_page_followUpReport_and_followUpCommentsReport,
-            "3 - Agd Diário": load_page_appointments_UpdatedAt,
+            "3 - Agd Diário": load_page_appointments_CreatedAt,
             "4 - Agd por Usuário": load_page_appointmentsByUser,
-            "5 - Testando": load_page_appointmentsSamir,
         },
         "Dash": {
             "1 - Leads": load_page_leads,

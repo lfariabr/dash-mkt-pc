@@ -224,4 +224,6 @@ def load_page_followUpReport_and_followUpCommentsReport():
             # TOTAL SUM OF DF_GROSS_SALES:
             total_sum = df_gross_sales['Valor líquido'].sum()
             st.subheader(f"Total de Vendas: R$ {total_sum:.2f}")
+
+            # TODO Merge total sum with total sum of df_entries + df_comments
             

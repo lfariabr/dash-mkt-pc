@@ -8,7 +8,6 @@ from datetime import datetime
 import json  # Add import for JSON handling
 
 load_dotenv()
-
 logger = logging.getLogger(__name__)
 
 async def fetch_appointmentReportSamir(session, start_date: str, end_date: str) -> List[Dict]:
@@ -42,6 +41,13 @@ async def fetch_appointmentReportSamir(session, start_date: str, end_date: str) 
                 id
                 startDate
                 updatedAt
+
+                createdBy {
+                    name
+                    group {
+                        name
+                    }
+                }
 
                 status {
                     code
@@ -236,17 +242,9 @@ async def fetch_appointmentReportSamir(session, start_date: str, end_date: str) 
 
                     # Nome da primeira atendente (S): oldestParent.createdBy.name → fallback: appointment.createdBy.name
                     created_by_name = safe_get(oldestParent, ["createdBy", "name"]) or safe_get(appointment, ["createdBy", "name"]) or "_não disponível"
-                    if created_by_name != "_não disponível":
-                        print(f"Nome da primeira atendente: {created_by_name}")
-                    else:
-                        print("Nome da primeira atendente not found in either oldestParent or appointment")
-
+                    
                     # Grupo da primeira atendente (T): oldestParent.createdBy.group.name → fallback: appointment.createdBy.group.name
                     created_by_group = safe_get(oldestParent, ["createdBy", "group", "name"]) or safe_get(appointment, ["createdBy", "group", "name"]) or "_não disponível"
-                    if created_by_group != "_não disponível":
-                        print(f"Grupo da primeira atendente: {created_by_group}")
-                    else:
-                        print("Grupo da primeira atendente not found in either oldestParent or appointment")
                     
                     created_at = oldestParent.get('createdAt') or appointment.get('updatedAt', '')
                     # created_by = oldestParent.get('createdBy') if oldestParent else None

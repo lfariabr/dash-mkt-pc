@@ -12,7 +12,6 @@ import os
 from datetime import datetime
 
 load_dotenv()
-
 logger = logging.getLogger(__name__)
 
 async def fetch_appointmentReport(session, start_date: str, end_date: str) -> List[Dict]:
@@ -47,6 +46,13 @@ async def fetch_appointmentReport(session, start_date: str, end_date: str) -> Li
                 startDate
                 updatedAt
 
+                createdBy {
+                    name
+                    group {
+                        name
+                    }
+                }
+
                 status {
                     code
                     label
@@ -141,38 +147,71 @@ async def fetch_appointmentReport(session, start_date: str, end_date: str) -> Li
             logger.error(f"Failed initial appointments fetch: {error_msg}")
             return all_appointments
             
-        # If we got here, the query structure works
         try:
-            # Check if we have appointment data
             if 'data' not in data:
                 logger.error("No 'data' field in GraphQL response")
                 return all_appointments
                 
             if 'appointmentsReport' not in data['data']:
-                logger.error("No 'appointmentsReport' field in GraphQL response data")
+                logger.error("No 'appointmentsReport' field in GraphQL data")
                 return all_appointments
                 
             appointments_report = data['data']['appointmentsReport']
-            if appointments_report is None:
-                logger.error("appointmentsReport is None")
+            if not appointments_report:
+                logger.error("Empty 'appointmentsReport' in response")
+                return all_appointments
+                
+            # Check first for the appointments data
+            if 'data' not in appointments_report:
+                logger.info("No 'data' field in appointmentsReport")
                 return all_appointments
                 
             appointments_data = appointments_report.get('data', [])
             if not appointments_data:
                 logger.info("No appointments found in the specified date range")
                 return all_appointments
-                
+            
             meta = appointments_report.get('meta', {})
             if meta is None:
-                meta = {}  # Provide a default empty dict if meta is None
-
-            transformed_appointments = []
-            for appointment in appointments_data:
+                meta = {}
+            
+            current_page = meta.get('currentPage', 1)
+            last_page = meta.get('lastPage', 1)
+            
+            all_appointments.extend(appointments_data)
+            
+            if current_page < last_page:
+                logger.info(f"Fetching remaining {last_page - current_page} pages")
+                
+                for page in range(current_page + 1, last_page + 1):
+                    logger.info(f"Fetching page {page} of {last_page}")
+                    
+                    variables['currentPage'] = page
+                    
+                    try:
+                        page_data = await fetch_graphql(session, api_url, query, variables)
+                        
+                        if page_data and 'data' in page_data and 'appointmentsReport' in page_data['data']:
+                            page_appointments_report = page_data['data']['appointmentsReport']
+                            if page_appointments_report and 'data' in page_appointments_report:
+                                page_appointments = page_appointments_report['data']                                
+                                all_appointments.extend(page_appointments)
+                                logger.info(f"Added {len(page_appointments)} appointments from page {page}")
+                            else:
+                                logger.warning(f"No appointment data found on page {page}")
+                        else:
+                            logger.warning(f"Invalid response structure for page {page}")
+                    except Exception as e:
+                        logger.error(f"Error fetching page {page}: {str(e)}")            
+            logger.info(f"Total appointments fetched: {len(all_appointments)}")
+            
+            processed_appointments = []
+            for appointment in all_appointments:
                 if appointment is None:
                     continue
-                    
+                
                 try:
-                    # Safely extract nested objects with fallbacks to empty dictionaries
+                    # Extract necessary objects with fallbacks
                     customer = appointment.get('customer', {}) or {}
                     store = appointment.get('store', {}) or {}
                     procedure = appointment.get('procedure', {}) or {}
@@ -182,161 +221,91 @@ async def fetch_appointmentReport(session, start_date: str, end_date: str) -> Li
                     oldestParent = appointment.get('oldestParent', {}) or {}
                     latestProgressComment = appointment.get('latestProgressComment', {}) or {}
                     
-                    # Safely extract nested objects one level deeper
+                    # Nested objects one level deeper
                     customer_source = customer.get('source', {}) or {}
                     latestProgressComment_user = latestProgressComment.get('user', {}) or {}
                     
-                    # Extract telephones with safety checks
+                    # Telephones with safety checks
                     telephones_data = customer.get('telephones', []) or []
                     telephones = ', '.join([tel.get('number', '') for tel in telephones_data if tel and isinstance(tel, dict)]) if telephones_data else ''
                     
-                    # Extract comments with safety checks
+                    # Comments with safety checks
                     comments_data = appointment.get('comments', []) or []
                     comments = '; '.join([c.get('comment', '') for c in comments_data if c and isinstance(c, dict)]) if comments_data else ''
                     
+                    # TODO: Implementation of fallback logic for Samir's requirements:
+                    # R -> oldestParent.createdAt (quando disponível) ou updatedAt (caso contrário)
+                    # S -> oldestParent.createdBy.name (quando disponível) ou updatedBy.name (caso contrário)
+                    # T -> oldestParent.createdBy.group.name (quando disponível) ou updatedBy.group.name (caso contrário)
+                    def safe_get(d, path):
+                        for key in path:
+                            if not isinstance(d, dict) or key not in d:
+                                return None
+                            d = d[key]
+                        return d
+
+                    # Nome da primeira atendente (S): oldestParent.createdBy.name → fallback: appointment.createdBy.name
+                    created_by_name = safe_get(oldestParent, ["createdBy", "name"]) or safe_get(appointment, ["createdBy", "name"]) or "_não disponível"
+                    
+                    # Grupo da primeira atendente (T): oldestParent.createdBy.group.name → fallback: appointment.createdBy.group.name
+                    created_by_group = safe_get(oldestParent, ["createdBy", "group", "name"]) or safe_get(appointment, ["createdBy", "group", "name"]) or "_não disponível"
+                    
+                    created_at = oldestParent.get('createdAt') or appointment.get('updatedAt', '')
+                    # created_by = oldestParent.get('createdBy') if oldestParent else None
+                    # if created_by:
+                    #     created_by_name = created_by.get('name', '')
+                    #     group = created_by.get('group')
+                    #     if group:
+                    #         created_by_group = group.get('name', "_não disponível")
+                    
+                    # Format createdAt as dd/MM/yyyy HH:mm if it's not empty
+                    formatted_created_at = ''
+                    if created_at:
+                        try:
+                            dt = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                            formatted_created_at = dt.strftime('%d/%m/%Y %H:%M')
+                        except Exception as e:
+                            logger.error(f"Error formatting createdAt date: {str(e)}")
+                            formatted_created_at = created_at  # Fallback to original format
+
                     # Map fields to the expected column names for the UI, with default values
                     transformed_appointment = {
-                        'id': appointment.get('id', ''),
-                        'client_id': customer.get('id', ''),
-                        'name': customer.get('name', ''),
-                        'telephones': telephones,
-                        'email': customer.get('email', ''),
-                        'store': store.get('name', ''),
-                        'procedure': procedure.get('name', ''),
-                        'procedure_groupLabel': procedure.get('groupLabel', ''),
-                        'employee': employee.get('name', ''),
-                        'startDate': appointment.get('startDate', ''),
-                        'endDate': appointment.get('endDate', ''),
-                        'status': status.get('label', ''),
-                        'comments': comments,
-                        'beforePhotoUrl': appointment.get('beforePhotoUrl', ''),
-                        'batchPhotoUrl': appointment.get('batchPhotoUrl', ''),
-                        'afterPhotoUrl': appointment.get('afterPhotoUrl', ''),
-                        'createdAt': oldestParent.get('createdAt', ''),
-                        'createdBy': oldestParent.get('createdBy', {}).get('name', ''),
-                        'createdBy_group': oldestParent.get('createdBy', {}).get('group', {}).get('name', ''),
-                        'source': customer_source.get('title', ''),
-                        'updatedAt': appointment.get('updatedAt', ''),
-                        'updatedBy': updatedBy.get('name', ''),
-                        'latestProgressComment': latestProgressComment.get('comment', ''),
-                        'latestProgressDate': latestProgressComment.get('createdAt', ''),
-                        'latestProgressUser': latestProgressComment_user.get('name', '')
+                        'ID agendamento': appointment.get('id', ''),                      # A -> id
+                        'ID cliente': customer.get('id', ''),                             # B -> customer.id
+                        'Nome cliente': customer.get('name', ''),                         # C -> customer.name
+                        'CPF': customer.get('taxvatFormatted', ''),                       # D -> customer.taxvatFormatted
+                        'Email': customer.get('email', ''),                               # E -> customer.email
+                        'Telefone': telephones,                                           # F -> customer.telephones.*.number
+                        'Endereço': customer.get('addressLine', ''),                      # G -> customer.addressLine
+                        'Fonte de cadastro do cliente': customer_source.get('title', ''), # H -> customer.source.title
+                        'Unidade do agendamento': store.get('name', ''),                  # I -> store.name
+                        'Procedimento': procedure.get('name', ''),                        # J -> procedure.name
+                        'Prestador': employee.get('name', ''),                            # K -> employee.name
+                        'Grupo do procedimento': procedure.get('groupLabel', ''),         # L -> procedure.groupLabel
+                        'Data': appointment.get('startDate', ''),                          # M -> startDate
+                        'Hora': '',                                                       # N -> startDate time
+                        'Status': status.get('label', ''),                                # O -> status.label
+                        'Duração': '',                                                    # P -> startDate + endDate
+                        'Máquina': None,                                                  # Q -> NULL
+                        'Data primeira atendente': formatted_created_at,                  # R -> oldestParent.createdAt
+                        'Nome da primeira atendente': created_by_name,                    # S -> oldestParent.createdBy.name
+                        'Grupo da primeira atendente': created_by_group,                  # T -> oldestParent.createdBy.group.name
+                        'Observação (mais recente)': comments,                             # U -> comments.comment
+                        'Última data de alteração do status': appointment.get('updatedAt', ''), # V -> updatedAt
+                        'Último usuário a alterar o status': updatedBy.get('name', ''),   # W -> updatedBy.name
+                        'Possui evolução?': 'Sim' if latestProgressComment.get('comment', '') else 'Não', # X -> latestProgressComment.comment
+                        'Comentário mais recente da evolução': latestProgressComment.get('comment', ''),  # Y -> latestProgressComment.comment
+                        'Data mais recente da evolução': latestProgressComment.get('createdAt', ''), # Z -> latestProgressComment.createdAt
+                        'Usuário mais recente da evolução': latestProgressComment_user.get('name', ''), # AA -> latestProgressComment.user.name
+                        'Tem foto do lote?': 'Sim' if appointment.get('batchPhotoUrl', '') else 'Não',           # AB -> batchPhotoUrl (if exists "Sim", otherwise "Não")
+                        'Tem foto do antes?': 'Sim' if appointment.get('beforePhotoUrl', '') else 'Não',         # AC -> beforePhotoUrl (if exists "Sim", otherwise "Não") 
+                        'Tem foto do depois?': 'Sim' if appointment.get('afterPhotoUrl', '') else 'Não'          # AD -> afterPhotoUrl (if exists "Sim", otherwise "Não")
                     }
-                    transformed_appointments.append(transformed_appointment)
+                    processed_appointments.append(transformed_appointment)
                 except Exception as e:
-                    logger.error(f"Error processing individual appointment: {str(e)}")
-                    # Continue with the next appointment rather than failing entirely
+                    logger.error(f"Error processing appointment: {str(e)}")
                     continue
-                
-            all_appointments.extend(transformed_appointments)
-            
-            # Get pagination info with fallbacks
-            current_page = meta.get('currentPage', 1)
-            per_page = meta.get('perPage', 0)
-            last_page = meta.get('lastPage', 1)
-            total = meta.get('total', 0)
-            
-            logger.info(f"Fetched page {current_page} of {last_page}. Total appointments: {total}")
-            
-            # If there are more pages, fetch them
-            if last_page > 1:
-                # Create tasks for all remaining pages
-                remaining_pages = list(range(2, last_page + 1))
-                
-                for page in remaining_pages:
-                    try:
-                        variables['currentPage'] = page
-                        page_data = await fetch_graphql(session, api_url, query, variables)
-                        
-                        if page_data is None:
-                            logger.error(f"GraphQL request returned None response for page {page}")
-                            continue
-                        
-                        if 'errors' in page_data:
-                            error_msg = "Unknown error"
-                            if page_data['errors'] and isinstance(page_data['errors'], list) and len(page_data['errors']) > 0:
-                                if 'message' in page_data['errors'][0]:
-                                    error_msg = page_data['errors'][0]['message']
-                            logger.error(f"Failed appointments fetch for page {page}: {error_msg}")
-                            continue
-                        
-                        if 'data' in page_data and 'appointmentsReport' in page_data['data']:
-                            page_appointments_report = page_data['data']['appointmentsReport']
-                            if page_appointments_report and 'data' in page_appointments_report:
-                                page_appointments = page_appointments_report['data']
-                                
-                                # Transform data for this page
-                                page_transformed = []
-                                for appointment in page_appointments:
-                                    if appointment is None:
-                                        continue
-                                    
-                                    try:
-                                        # Safely extract nested objects with fallbacks to empty dictionaries
-                                        customer = appointment.get('customer', {}) or {}
-                                        store = appointment.get('store', {}) or {}
-                                        procedure = appointment.get('procedure', {}) or {}
-                                        employee = appointment.get('employee', {}) or {}
-                                        status = appointment.get('status', {}) or {}
-                                        updatedBy = appointment.get('updatedBy', {}) or {}
-                                        oldestParent = appointment.get('oldestParent', {}) or {}
-                                        createdBy = oldestParent.get('createdBy', {}) or {}
-                                        latestProgressComment = appointment.get('latestProgressComment', {}) or {}
-                                        
-                                        # Safely extract nested objects one level deeper
-                                        customer_source = customer.get('source', {}) or {}
-                                        latestProgressComment_user = latestProgressComment.get('user', {}) or {}
-                                        
-                                        # Extract telephones with safety checks
-                                        telephones_data = customer.get('telephones', []) or []
-                                        telephones = ', '.join([tel.get('number', '') for tel in telephones_data if tel and isinstance(tel, dict)]) if telephones_data else ''
-                                        
-                                        # Extract comments with safety checks
-                                        comments_data = appointment.get('comments', []) or []
-                                        comments = '; '.join([c.get('comment', '') for c in comments_data if c and isinstance(c, dict)]) if comments_data else ''
-                                        
-                                        transformed_appointment = {
-                                            'id': appointment.get('id', ''),
-                                            'client_id': customer.get('id', ''),
-                                            'name': customer.get('name', ''),
-                                            'telephones': telephones,
-                                            'email': customer.get('email', ''),
-                                            'store': store.get('name', ''),
-                                            'procedure': procedure.get('name', ''),
-                                            'employee': employee.get('name', ''),
-                                            'startDate': appointment.get('startDate', ''),
-                                            'endDate': appointment.get('endDate', ''),
-                                            'status': status.get('label', ''),
-                                            'comments': comments,
-                                            'beforePhotoUrl': appointment.get('beforePhotoUrl', ''),
-                                            'batchPhotoUrl': appointment.get('batchPhotoUrl', ''),
-                                            'afterPhotoUrl': appointment.get('afterPhotoUrl', ''),
-                                            'createdBy': oldestParent.get('createdBy', {}).get('name', ''),
-                                            'createdBy_group': oldestParent.get('createdBy', {}).get('group', {}).get('name', ''),
-                                            'createdAt': oldestParent.get('createdAt', ''),
-                                            'source': customer_source.get('title', ''),
-                                            'updatedAt': appointment.get('updatedAt', ''),
-                                            'updatedBy': updatedBy.get('name', ''),
-                                            'latestProgressComment': latestProgressComment.get('comment', ''),
-                                            'latestProgressDate': latestProgressComment.get('createdAt', ''),
-                                            'latestProgressUser': latestProgressComment_user.get('name', '')
-                                        }
-                                        page_transformed.append(transformed_appointment)
-                                    except Exception as e:
-                                        logger.error(f"Error processing appointment on page {page}: {str(e)}")
-                                        continue
-                                        
-                                all_appointments.extend(page_transformed)
-                                logger.info(f"Added {len(page_transformed)} appointments from page {page}")
-                            else:
-                                logger.warning(f"No appointment data found on page {page}")
-                        else:
-                            logger.warning(f"Invalid response structure for page {page}")
-                    except Exception as e:
-                        logger.error(f"Error fetching page {page}: {str(e)}")
-            
-            logger.info(f"Total appointments fetched: {len(all_appointments)}")
-            return all_appointments
+            return processed_appointments
             
         except Exception as e:
             logger.error(f"Error processing appointment data: {str(e)}")
@@ -369,7 +338,7 @@ async def fetch_and_process_appointment_report(start_date: str, end_date: str) -
     return appointments
 
 
-async def fetch_appointmentReportUpdatedAt(session, start_date: str, end_date: str) -> List[Dict]:
+async def fetch_appointmentReportCreatedAt(session, start_date: str, end_date: str) -> List[Dict]:
     """
     Fetches appointment report data from the CRM API within a specified date range.
     
@@ -383,8 +352,9 @@ async def fetch_appointmentReportUpdatedAt(session, start_date: str, end_date: s
     """
     current_page = 1
     all_appointments = []
-    api_url = os.getenv('API_CRM_URL', 'https://open-api.queromeubotox.com.br/graphql')
+    api_url = os.getenv('API_CRM_URL', 'https://open-api.eprocorpo.com.br/graphql')
 
+    # Updated query with correct pagination parameters
     # Updated query with correct pagination parameters
     query = '''
     query AppointmentsReport($start: Date!, $end: Date!, $currentPage: Int!, $perPage: Int!) {
@@ -400,6 +370,13 @@ async def fetch_appointmentReportUpdatedAt(session, start_date: str, end_date: s
                 id
                 startDate
                 updatedAt
+
+                createdBy {
+                    name
+                    group {
+                        name
+                    }
+                }
 
                 status {
                     code
@@ -495,38 +472,71 @@ async def fetch_appointmentReportUpdatedAt(session, start_date: str, end_date: s
             logger.error(f"Failed initial appointments fetch: {error_msg}")
             return all_appointments
             
-        # If we got here, the query structure works
         try:
-            # Check if we have appointment data
             if 'data' not in data:
                 logger.error("No 'data' field in GraphQL response")
                 return all_appointments
                 
             if 'appointmentsReport' not in data['data']:
-                logger.error("No 'appointmentsReport' field in GraphQL response data")
+                logger.error("No 'appointmentsReport' field in GraphQL data")
                 return all_appointments
                 
             appointments_report = data['data']['appointmentsReport']
-            if appointments_report is None:
-                logger.error("appointmentsReport is None")
+            if not appointments_report:
+                logger.error("Empty 'appointmentsReport' in response")
+                return all_appointments
+                
+            # Check first for the appointments data
+            if 'data' not in appointments_report:
+                logger.info("No 'data' field in appointmentsReport")
                 return all_appointments
                 
             appointments_data = appointments_report.get('data', [])
             if not appointments_data:
                 logger.info("No appointments found in the specified date range")
                 return all_appointments
-                
+            
             meta = appointments_report.get('meta', {})
             if meta is None:
-                meta = {}  # Provide a default empty dict if meta is None
-
-            transformed_appointments = []
-            for appointment in appointments_data:
+                meta = {}
+            
+            current_page = meta.get('currentPage', 1)
+            last_page = meta.get('lastPage', 1)
+            
+            all_appointments.extend(appointments_data)
+            
+            if current_page < last_page:
+                logger.info(f"Fetching remaining {last_page - current_page} pages")
+                
+                for page in range(current_page + 1, last_page + 1):
+                    logger.info(f"Fetching page {page} of {last_page}")
+                    
+                    variables['currentPage'] = page
+                    
+                    try:
+                        page_data = await fetch_graphql(session, api_url, query, variables)
+                        
+                        if page_data and 'data' in page_data and 'appointmentsReport' in page_data['data']:
+                            page_appointments_report = page_data['data']['appointmentsReport']
+                            if page_appointments_report and 'data' in page_appointments_report:
+                                page_appointments = page_appointments_report['data']                                
+                                all_appointments.extend(page_appointments)
+                                logger.info(f"Added {len(page_appointments)} appointments from page {page}")
+                            else:
+                                logger.warning(f"No appointment data found on page {page}")
+                        else:
+                            logger.warning(f"Invalid response structure for page {page}")
+                    except Exception as e:
+                        logger.error(f"Error fetching page {page}: {str(e)}")            
+            logger.info(f"Total appointments fetched: {len(all_appointments)}")
+            
+            processed_appointments = []
+            for appointment in all_appointments:
                 if appointment is None:
                     continue
-                    
+                
                 try:
-                    # Safely extract nested objects with fallbacks to empty dictionaries
+                    # Extract necessary objects with fallbacks
                     customer = appointment.get('customer', {}) or {}
                     store = appointment.get('store', {}) or {}
                     procedure = appointment.get('procedure', {}) or {}
@@ -536,165 +546,91 @@ async def fetch_appointmentReportUpdatedAt(session, start_date: str, end_date: s
                     oldestParent = appointment.get('oldestParent', {}) or {}
                     latestProgressComment = appointment.get('latestProgressComment', {}) or {}
                     
-                    # Safely extract nested objects one level deeper
+                    # Nested objects one level deeper
                     customer_source = customer.get('source', {}) or {}
                     latestProgressComment_user = latestProgressComment.get('user', {}) or {}
                     
-                    # Extract telephones with safety checks
+                    # Telephones with safety checks
                     telephones_data = customer.get('telephones', []) or []
                     telephones = ', '.join([tel.get('number', '') for tel in telephones_data if tel and isinstance(tel, dict)]) if telephones_data else ''
                     
-                    # Extract comments with safety checks
+                    # Comments with safety checks
                     comments_data = appointment.get('comments', []) or []
                     comments = '; '.join([c.get('comment', '') for c in comments_data if c and isinstance(c, dict)]) if comments_data else ''
                     
+                    # TODO: Implementation of fallback logic for Samir's requirements:
+                    # R -> oldestParent.createdAt (quando disponível) ou updatedAt (caso contrário)
+                    # S -> oldestParent.createdBy.name (quando disponível) ou updatedBy.name (caso contrário)
+                    # T -> oldestParent.createdBy.group.name (quando disponível) ou updatedBy.group.name (caso contrário)
+                    def safe_get(d, path):
+                        for key in path:
+                            if not isinstance(d, dict) or key not in d:
+                                return None
+                            d = d[key]
+                        return d
+
+                    # Nome da primeira atendente (S): oldestParent.createdBy.name → fallback: appointment.createdBy.name
+                    created_by_name = safe_get(oldestParent, ["createdBy", "name"]) or safe_get(appointment, ["createdBy", "name"]) or "_não disponível"
+                    
+                    # Grupo da primeira atendente (T): oldestParent.createdBy.group.name → fallback: appointment.createdBy.group.name
+                    created_by_group = safe_get(oldestParent, ["createdBy", "group", "name"]) or safe_get(appointment, ["createdBy", "group", "name"]) or "_não disponível"
+                    
+                    created_at = oldestParent.get('createdAt') or appointment.get('updatedAt', '')
+                    # created_by = oldestParent.get('createdBy') if oldestParent else None
+                    # if created_by:
+                    #     created_by_name = created_by.get('name', '')
+                    #     group = created_by.get('group')
+                    #     if group:
+                    #         created_by_group = group.get('name', "_não disponível")
+                    
+                    # Format createdAt as dd/MM/yyyy HH:mm if it's not empty
+                    formatted_created_at = ''
+                    if created_at:
+                        try:
+                            dt = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                            formatted_created_at = dt.strftime('%d/%m/%Y %H:%M')
+                        except Exception as e:
+                            logger.error(f"Error formatting createdAt date: {str(e)}")
+                            formatted_created_at = created_at  # Fallback to original format
+
                     # Map fields to the expected column names for the UI, with default values
                     transformed_appointment = {
-                        'id': appointment.get('id', ''),
-                        'client_id': customer.get('id', ''),
-                        'name': customer.get('name', ''),
-                        'telephones': telephones,
-                        'email': customer.get('email', ''),
-                        'store': store.get('name', ''),
-                        'procedure': procedure.get('name', ''),
-                        'procedure_groupLabel': procedure.get('groupLabel', ''),
-                        'employee': employee.get('name', ''),
-                        'startDate': appointment.get('startDate', ''),
-                        'endDate': appointment.get('endDate', ''),
-                        'status': status.get('label', ''),
-                        'comments': comments,
-                        'beforePhotoUrl': appointment.get('beforePhotoUrl', ''),
-                        'batchPhotoUrl': appointment.get('batchPhotoUrl', ''),
-                        'afterPhotoUrl': appointment.get('afterPhotoUrl', ''),
-                        'createdBy': oldestParent.get('createdBy', {}).get('name', ''),
-                        'createdBy_group': oldestParent.get('createdBy', {}).get('group', {}).get('name', ''),
-                        'createdAt': oldestParent.get('createdAt', ''),
-                        'source': customer_source.get('title', ''),
-                        'updatedAt': appointment.get('updatedAt', ''),
-                        'updatedBy': updatedBy.get('name', ''),
-                        'latestProgressComment': latestProgressComment.get('comment', ''),
-                        'latestProgressDate': latestProgressComment.get('createdAt', ''),
-                        'latestProgressUser': latestProgressComment_user.get('name', '')
+                        'ID agendamento': appointment.get('id', ''),                      # A -> id
+                        'ID cliente': customer.get('id', ''),                             # B -> customer.id
+                        'Nome cliente': customer.get('name', ''),                         # C -> customer.name
+                        'CPF': customer.get('taxvatFormatted', ''),                       # D -> customer.taxvatFormatted
+                        'Email': customer.get('email', ''),                               # E -> customer.email
+                        'Telefone': telephones,                                           # F -> customer.telephones.*.number
+                        'Endereço': customer.get('addressLine', ''),                      # G -> customer.addressLine
+                        'Fonte de cadastro do cliente': customer_source.get('title', ''), # H -> customer.source.title
+                        'Unidade do agendamento': store.get('name', ''),                  # I -> store.name
+                        'Procedimento': procedure.get('name', ''),                        # J -> procedure.name
+                        'Prestador': employee.get('name', ''),                            # K -> employee.name
+                        'Grupo do procedimento': procedure.get('groupLabel', ''),         # L -> procedure.groupLabel
+                        'Data': appointment.get('startDate', ''),                          # M -> startDate
+                        'Hora': '',                                                       # N -> startDate time
+                        'Status': status.get('label', ''),                                # O -> status.label
+                        'Duração': '',                                                    # P -> startDate + endDate
+                        'Máquina': None,                                                  # Q -> NULL
+                        'Data primeira atendente': formatted_created_at,                  # R -> oldestParent.createdAt
+                        'Nome da primeira atendente': created_by_name,                    # S -> oldestParent.createdBy.name
+                        'Grupo da primeira atendente': created_by_group,                  # T -> oldestParent.createdBy.group.name
+                        'Observação (mais recente)': comments,                             # U -> comments.comment
+                        'Última data de alteração do status': appointment.get('updatedAt', ''), # V -> updatedAt
+                        'Último usuário a alterar o status': updatedBy.get('name', ''),   # W -> updatedBy.name
+                        'Possui evolução?': 'Sim' if latestProgressComment.get('comment', '') else 'Não', # X -> latestProgressComment.comment
+                        'Comentário mais recente da evolução': latestProgressComment.get('comment', ''),  # Y -> latestProgressComment.comment
+                        'Data mais recente da evolução': latestProgressComment.get('createdAt', ''), # Z -> latestProgressComment.createdAt
+                        'Usuário mais recente da evolução': latestProgressComment_user.get('name', ''), # AA -> latestProgressComment.user.name
+                        'Tem foto do lote?': 'Sim' if appointment.get('batchPhotoUrl', '') else 'Não',           # AB -> batchPhotoUrl (if exists "Sim", otherwise "Não")
+                        'Tem foto do antes?': 'Sim' if appointment.get('beforePhotoUrl', '') else 'Não',         # AC -> beforePhotoUrl (if exists "Sim", otherwise "Não") 
+                        'Tem foto do depois?': 'Sim' if appointment.get('afterPhotoUrl', '') else 'Não'          # AD -> afterPhotoUrl (if exists "Sim", otherwise "Não")
                     }
-                    transformed_appointments.append(transformed_appointment)
+                    processed_appointments.append(transformed_appointment)
                 except Exception as e:
-                    logger.error(f"Error processing individual appointment: {str(e)}")
-                    # Continue with the next appointment rather than failing entirely
+                    logger.error(f"Error processing appointment: {str(e)}")
                     continue
-                
-            all_appointments.extend(transformed_appointments)
-            
-            # Get pagination info with fallbacks
-            current_page = meta.get('currentPage', 1)
-            per_page = meta.get('perPage', 0)
-            last_page = meta.get('lastPage', 1)
-            total = meta.get('total', 0)
-            
-            logger.info(f"Fetched page {current_page} of {last_page}. Total appointments: {total}")
-            
-            # If there are more pages, fetch them
-            if last_page > 1:
-                # Create tasks for all remaining pages
-                remaining_pages = list(range(2, last_page + 1))
-                
-                for page in remaining_pages:
-                    try:
-                        variables['currentPage'] = page
-                        page_data = await fetch_graphql(session, api_url, query, variables)
-                        
-                        if page_data is None:
-                            logger.error(f"GraphQL request returned None response for page {page}")
-                            continue
-                        
-                        if 'errors' in page_data:
-                            error_msg = "Unknown error"
-                            if page_data['errors'] and isinstance(page_data['errors'], list) and len(page_data['errors']) > 0:
-                                if 'message' in page_data['errors'][0]:
-                                    error_msg = page_data['errors'][0]['message']
-                            logger.error(f"Failed appointments fetch for page {page}: {error_msg}")
-                            continue
-                        
-                        if 'data' in page_data and 'appointmentsReport' in page_data['data']:
-                            page_appointments_report = page_data['data']['appointmentsReport']
-                            if page_appointments_report and 'data' in page_appointments_report:
-                                page_appointments = page_appointments_report['data']
-                                
-                                # Transform data for this page
-                                page_transformed = []
-                                for appointment in page_appointments:
-                                    if appointment is None:
-                                        continue
-                                    
-                                    try:
-                                        # Safely extract nested objects with fallbacks to empty dictionaries
-                                        customer = appointment.get('customer', {}) or {}
-                                        store = appointment.get('store', {}) or {}
-                                        procedure = appointment.get('procedure', {}) or {}
-                                        employee = appointment.get('employee', {}) or {}
-                                        status = appointment.get('status', {}) or {}
-                                        updatedBy = appointment.get('updatedBy', {}) or {}
-                                        oldestParent = appointment.get('oldestParent', {}) or {}
-                                        latestProgressComment = appointment.get('latestProgressComment', {}) or {}
-
-                                        # Get data from oldestParent
-                                        createdBy = oldestParent.get('createdBy', {}) or {}
-                                        createdAt = oldestParent.get('createdAt', '')
-                                        
-                                        # Safely extract nested objects one level deeper
-                                        customer_source = customer.get('source', {}) or {}
-                                        latestProgressComment_user = latestProgressComment.get('user', {}) or {}
-                                        
-                                        # Extract telephones with safety checks
-                                        telephones_data = customer.get('telephones', []) or []
-                                        telephones = ', '.join([tel.get('number', '') for tel in telephones_data if tel and isinstance(tel, dict)]) if telephones_data else ''
-                                        
-                                        # Extract comments with safety checks
-                                        comments_data = appointment.get('comments', []) or []
-                                        comments = '; '.join([c.get('comment', '') for c in comments_data if c and isinstance(c, dict)]) if comments_data else ''
-                                        
-                                        transformed_appointment = {
-                                            'id': appointment.get('id', ''),
-                                            'client_id': customer.get('id', ''),
-                                            'name': customer.get('name', ''),
-                                            'telephones': telephones,
-                                            'email': customer.get('email', ''),
-                                            'store': store.get('name', ''),
-                                            'procedure': procedure.get('name', ''),
-                                            'procedure_groupLabel': procedure.get('groupLabel', ''),
-                                            'employee': employee.get('name', ''),
-                                            'startDate': appointment.get('startDate', ''),
-                                            'endDate': appointment.get('endDate', ''),
-                                            'status': status.get('label', ''),
-                                            'comments': comments,
-                                            'beforePhotoUrl': appointment.get('beforePhotoUrl', ''),
-                                            'batchPhotoUrl': appointment.get('batchPhotoUrl', ''),
-                                            'afterPhotoUrl': appointment.get('afterPhotoUrl', ''),
-                                            'createdBy': createdBy.get('name', ''),
-                                            'createdBy_group': createdBy.get('group', {}).get('name', ''),
-                                            'createdAt': createdAt,
-                                            'source': customer_source.get('title', ''),
-                                            'updatedAt': appointment.get('updatedAt', ''),
-                                            'updatedBy': updatedBy.get('name', ''),
-                                            'latestProgressComment': latestProgressComment.get('comment', ''),
-                                            'latestProgressDate': latestProgressComment.get('createdAt', ''),
-                                            'latestProgressUser': latestProgressComment_user.get('name', '')
-                                        }
-                                        page_transformed.append(transformed_appointment)
-                                    except Exception as e:
-                                        logger.error(f"Error processing appointment on page {page}: {str(e)}")
-                                        continue
-                                        
-                                all_appointments.extend(page_transformed)
-                                logger.info(f"Added {len(page_transformed)} appointments from page {page}")
-                            else:
-                                logger.warning(f"No appointment data found on page {page}")
-                        else:
-                            logger.warning(f"Invalid response structure for page {page}")
-                    except Exception as e:
-                        logger.error(f"Error fetching page {page}: {str(e)}")
-            
-            logger.info(f"Total appointments fetched: {len(all_appointments)}")
-            return all_appointments
+            return processed_appointments
             
         except Exception as e:
             logger.error(f"Error processing appointment data: {str(e)}")
@@ -708,7 +644,7 @@ async def fetch_appointmentReportUpdatedAt(session, start_date: str, end_date: s
         logger.error(f"Traceback: {traceback.format_exc()}")
         return all_appointments
 
-async def fetch_and_process_appointment_report_updated_at(start_date: str, end_date: str) -> List[Dict]:
+async def fetch_and_process_appointment_report_created_at(start_date: str, end_date: str) -> List[Dict]:
     """
     Creates a session and fetches appointment report data.
     
@@ -722,6 +658,6 @@ async def fetch_and_process_appointment_report_updated_at(start_date: str, end_d
     import aiohttp
     
     async with aiohttp.ClientSession() as session:
-        appointments = await fetch_appointmentReportUpdatedAt(session, start_date, end_date)
+        appointments = await fetch_appointmentReportCreatedAt(session, start_date, end_date)
     
     return appointments
