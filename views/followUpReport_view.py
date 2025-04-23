@@ -226,4 +226,4 @@ def load_page_followUpReport_and_followUpCommentsReport():
             st.subheader(f"Total de Vendas: R$ {total_sum:.2f}")
 
             # TODO Merge total sum with total sum of df_entries + df_comments
-            
+            # pending

@@ -51,7 +51,7 @@ def load_page_leadsByUser():
     with col2:
         end_date = st.date_input(
             "Data Final",
-            value=datetime.now(),
+            value=datetime.now() - timedelta(days=1),
             max_value=datetime.now()
         ).strftime('%Y-%m-%d')
     
@@ -174,25 +174,59 @@ def load_page_leadsByUser():
                 st.subheader("Atendentes do Turno da Tarde")
                 st.dataframe(df_atendentes_tarde[display_columns], hide_index=True)
 
-                # Filter for appointments (agendamentos)
+                # Filtering for Appointments COC will consider valid
                 df_appointments_agendamentos = df_appointments[
                                             (df_appointments['Status'].isin(agendamento_status_por_atendente)) 
                                             & (df_appointments['Procedimento'].isin(procedimento_avaliacao))]
 
-                # Appointments of Atendentes
+                # Matching "Data primeira atendente" with start_date @ graphql request
+                df_appointments_agendamentos['Data primeira atendente'] = pd.to_datetime(df_appointments_agendamentos['Data primeira atendente']).dt.date
+                start_date = pd.to_datetime(start_date).date()
+
+                # Doing last filter to match start_date
+                df_appointments_agendamentos['data_primeira_atendente_is_start_date?'] = df_appointments_agendamentos['Data primeira atendente'] == start_date
+                df_appointments_agendamentos_filtered = df_appointments_agendamentos[df_appointments_agendamentos['data_primeira_atendente_is_start_date?'] == True]
+                
                 st.subheader("Agendamentos do Turno da Manhã")
-                df_appointments_atendentes_manha = df_appointments_agendamentos[df_appointments_agendamentos['Nome da primeira atendente'].isin(atendentes_puxadas_manha.keys())]
-                # df_appointments_atendentes_manha['data_primeira_atendente_is_start_date?'] ? # TODO
-                st.dataframe(df_appointments_atendentes_manha, hide_index=True)
+                df_appointments_atendentes_manha = df_appointments_agendamentos_filtered[
+                    df_appointments_agendamentos_filtered['Nome da primeira atendente']
+                    .isin(atendentes_puxadas_manha.keys())]
+                df_appointments_atendentes_manha_grouped = df_appointments_atendentes_manha.groupby('Nome da primeira atendente').agg({'ID agendamento': 'nunique'}).reset_index()
+
+                st.dataframe(df_appointments_atendentes_manha_grouped, hide_index=True)
                 
                 st.subheader("Agendamentos do Turno da Tarde")
-                df_appointments_atendentes_tarde = df_appointments_agendamentos[df_appointments_agendamentos['Nome da primeira atendente'].isin(atendentes_puxadas_tarde.keys())]
-                st.dataframe(df_appointments_atendentes_tarde, hide_index=True)
+                df_appointments_atendentes_tarde = df_appointments_agendamentos_filtered[
+                    df_appointments_agendamentos_filtered['Nome da primeira atendente']
+                    .isin(atendentes_puxadas_tarde.keys())
+                ]
+                df_appointments_atendentes_tarde_grouped = df_appointments_atendentes_tarde.groupby('Nome da primeira atendente').agg({'ID agendamento': 'nunique'}).reset_index()
 
-                # Debug dados Atendente "Ingrid Caroline Santos Andrade"
+                st.dataframe(df_appointments_atendentes_tarde_grouped, hide_index=True)
+
+                # Debugging appointments of Atendente "Ingrid Caroline Santos Andrade"
                 st.subheader("Debug dados Atendente 'Ingrid Caroline Santos Andrade'")
                 df_appointments_atendentes_ingrid = df_appointments_agendamentos[df_appointments_agendamentos['Nome da primeira atendente'] == 'Ingrid Caroline Santos Andrade']
-                st.dataframe(df_appointments_atendentes_ingrid, hide_index=True)
+                df_appointments_atendentes_ingrid_valid = df_appointments_atendentes_ingrid[df_appointments_atendentes_ingrid['data_primeira_atendente_is_start_date?'] == True]
+
+                st.dataframe(df_appointments_atendentes_ingrid_valid, hide_index=True)
+
+                # Merging Puxadas Manhã with Agendamentos Manhã
+                df_leads_and_appointments_manha = pd.merge(df_atendentes_manha, df_appointments_atendentes_manha_grouped, left_on='Atendente', right_on='Nome da primeira atendente', how='left')
+
+                # Merging Puxadas Tarde with Agendamentos Tarde
+                df_leads_and_appointments_tarde = pd.merge(df_atendentes_tarde, df_appointments_atendentes_tarde_grouped, left_on='Atendente', right_on='Nome da primeira atendente', how='left')
+
+                # Displaying merged dataframes
+                st.subheader("Agendamentos e Leads do Turno da Manhã")
+                st.dataframe(df_leads_and_appointments_manha, hide_index=True)
+
+                st.subheader("Agendamentos e Leads do Turno da Tarde")
+                st.dataframe(df_leads_and_appointments_tarde, hide_index=True)
+
+                
+
+                
 
                 
                 
