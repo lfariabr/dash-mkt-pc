@@ -1,10 +1,15 @@
-import streamlit as st
-import pandas as pd
-from datetime import datetime, timedelta
 import asyncio
+import pandas as pd
+import streamlit as st
+from datetime import datetime
+
 from apiCrm.resolvers.fetch_leadsByUserReport import fetch_and_process_leadsByUserReport
 from apiCrm.resolvers.fetch_appointmentReport import fetch_and_process_appointment_report_created_at
-from views.appointments.appointment_types import comparecimento_status, procedimento_avaliacao, agendamento_status_por_atendente
+from components.date_input import date_input
+
+from views.appointments.appointment_types import procedimento_avaliacao, agendamento_status_por_atendente
+from views.coc.atendentes import atendentes_puxadas_manha, atendentes_puxadas_tarde
+                
 
 async def fetch_leads_and_appointments(start_date, end_date):
     """
@@ -32,28 +37,12 @@ def load_data(start_date=None, end_date=None):
 
 def load_page_leadsByUser():
     """Main function to display leads by user data."""
+
     st.title("📊 1 - Puxada de Leads")
-
     st.markdown("---")
-
     st.subheader("Selecione o intervalo de datas para o relatório:")
     
-    start_date = None
-    end_date = None
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        start_date = st.date_input(
-            "Data Inicial",
-            value=datetime.now() - timedelta(days=1),
-            max_value=datetime.now()
-        ).strftime('%Y-%m-%d')
-    with col2:
-        end_date = st.date_input(
-            "Data Final",
-            value=datetime.now() - timedelta(days=1),
-            max_value=datetime.now()
-        ).strftime('%Y-%m-%d')
+    start_date, end_date = date_input()
     
     if st.button("Carregar"):
         with st.spinner("Carregando dados..."):
@@ -62,50 +51,12 @@ def load_page_leadsByUser():
             if df_leadsByUser.empty or df_appointments.empty:
                 st.warning("Não foram encontrados dados para o período selecionado.")
             else:
+                st.write("Debugging first...")
+                st.dataframe(df_leadsByUser)
+                st.write("---")
                 # Treating data columns:
                 leadsByUserColumns = ['name', 'messages_count', 'unique_messages_count', 'messages_count_by_status', 'success_rate']
-                
-                agendamento_por_lead_column = ['agd', 'jag'] # to filter messages_count_by_status column
-                
-                # Define attendants lists
-                atendentes_puxadas_tarde = {
-                    'Ingrid Caroline Santos Andrade' : 'Campinas', 
-                    'Jenniffer Lopes Romão da Silva' : 'Tucuruvi',
-                    'Fernanda Machado Leite' : 'Tijuca',
-                    'Iasmin Monteiro Dias dos Santos' : 'Jardins',
-                    'Gabrielly Cristina Silva dos Santos' : 'Tatuapé',
-                    'Aryanne de jesus luiz' : 'Itaim',
-                    'Giovanna Vitoria Cota Mascarenhas' : 'Tatuapé',
-                    'Jihad Pereira dos Santos' : 'Ipiranga',
-                    'Vitoria Almeida Silva' : 'Osasco',
-                    'Sarah leal oliveira' : 'Vila Mascote',
-                    'Thais Dias Souza Vasquez' : 'Moema',
-                    'Talita Vitória Moreira' : 'Londrina',
-                    'Luisa Yuka Hiraide Soares' : 'Copacabana',
-                    'Ana Luiza Silva Martins' : 'Santo Amaro',
-                    'Giovanna Maia Alves' : 'Santos',
-                    'Alany Melo de Souza' : 'Santos'
-                }
-
-                atendentes_puxadas_manha = {
-                    'Thamyres Lima Marques' : 'Tijuca',
-                    'Aline Araujo de Oliveira' : 'Guarulhos',
-                    'Amanda Raquel Cassula' : 'Londrina',
-                    'Larissa Sabino dos Santos' : 'Moema',
-                    'Sarah de Jesus dos Santos Pilatos' : 'Ipiranga',
-                    'Yasmin Veronez Ramos' : 'São Bernardo',
-                    'Geovanna Maynara Soares' : 'Sorocaba',
-                    'Letícia Moreira Valentim' : 'Tatuapé',
-                    'Camylli Victoria Lonis Silva' : 'Tucuruvi',
-                    'Marta Maria Palma' : 'Jardins',
-                    'Larissa Rodrigues da Silva' : 'Alphaville',
-                    'Camilly Giselli Barros e Barros' : 'Osasco',
-                    'Gabriela Gomes Magalhaes dos Anjos' : 'Santo Amaro',
-                    'Renally Carla da Silva Moura' : 'Copacabana',
-                    'Beatriz Nogueira de Oliveira' : 'Vila Mascote',
-                    'Loren Schiavo Araujo' : 'Santos',
-                    'Flavia Feitosa da Silva' : 'Mooca'
-                }
+                agendamento_por_lead_column = ['agd', 'jag'] # to filter messages_count_by_status column    
                 
                 # Select basic columns and rename them
                 df_leadsByUser = df_leadsByUser[leadsByUserColumns]
@@ -223,6 +174,8 @@ def load_page_leadsByUser():
 
                 st.subheader("Agendamentos e Leads do Turno da Tarde")
                 st.dataframe(df_leads_and_appointments_tarde, hide_index=True)
+
+                # JOB TO BE DONE
 
                 
 

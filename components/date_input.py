@@ -1,7 +1,6 @@
 import streamlit as st
 from datetime import datetime, timedelta
 
-
 def date_input():
     start_date = None
     end_date = None
