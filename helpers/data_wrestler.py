@@ -11,6 +11,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from backend.database import SessionLocal, engine
 from backend.models.mkt_lead import MktLead
 from sqlalchemy.orm import Session
+from views.coc.columns import agendamento_por_lead_column
+
 
 def safe_date(date_value):
     """
@@ -446,3 +448,8 @@ def save_data_to_db_batch(df_leads_with_purchases):
         """
     
     return overall_success, user_message
+
+def extract_agendamentos(status_dict):
+    if isinstance(status_dict, dict):
+        return sum(status_dict.get(status, 0) for status in agendamento_por_lead_column)
+    return 0
