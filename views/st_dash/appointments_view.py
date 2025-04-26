@@ -81,6 +81,8 @@ def load_page_appointments():
     start_date, end_date = date_input()
         
     if st.button("Carregar"):
+        from utils.discord import send_discord_message
+        send_discord_message(f"Loading data in page appointments_view")
         with st.spinner("Carregando dados..."):
             df_appointments = load_data(start_date, end_date)
 

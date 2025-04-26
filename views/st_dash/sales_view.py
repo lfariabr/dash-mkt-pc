@@ -122,6 +122,8 @@ def load_page_sales():
     start_date, end_date = date_input()
     
     if st.button("Carregar"):
+        from utils.discord import send_discord_message
+        send_discord_message(f"Loading data in page sales_view")
         with st.spinner("Carregando dados..."):
             df_sales = load_data(start_date, end_date)
         
@@ -133,8 +135,6 @@ def load_page_sales():
             df_sales = df_sales.loc[df_sales['Status'] == 'completed']
             df_sales = df_sales.loc[df_sales['Consultor'] != 'BKO VENDAS']
             df_sales = df_sales.loc[df_sales['Unidade'] != 'PRAIA GRANDE']
-
-
             
             # Fix: Ensure proper numeric conversion of 'Valor líquido' for summation
             # This is the critical step that needs to happen after filtering

@@ -1,0 +1,42 @@
+consultoras_manha = {
+    'Beatriz Emanoela da Silva' : 'Tatuapé',
+    'Alessandra Araújo de Oliveira' : 'Tatuapé',
+    'Gabriela Rodrigues Evaristo Barbosa' : 'Osasco',
+    'Estefani Lima Santos' : 'Santo Amaro',
+    'Joyce Bearari da Silva' : 'Campinas',
+    'Anna Flavia Medeiros Paiva' : 'Tijuca',
+    'Leticia Araujo Dos Santos' : 'Lapa',
+    'Larissa Teixeira da Rocha' : 'Tucuruvi',
+    'Laryssa Benicio Santos' : 'Londrina',
+    'Bruna Nascimento Rangel' : 'Copacabana',
+    'Barbara Sumire Ireijo Bravo' : 'Santos',
+    'Carla Tais de Souza Lamego' : 'Jardins',
+    'Julia Bigliazzi Amorim Nogueira' : 'Ipiranga',
+    'Diana da Silva Sousa' : 'Jardins',
+    'Claudia Vitoria Xavier da Silva' : 'Moema'
+}
+
+consultoras_tarde = {
+    'Beatriz Abrantes Duarte' : 'Ipiranga',
+    'Eskarlete Kloh Matos' : 'Osasco',
+    'Kathelyn Matoso Pinheiro dos Santos' : 'Santo Amaro',
+    'Yasmin Emanuele Dal-Bó Teixeira' : 'Londrina',
+    'Jessica Oliveira de Azevedo' : 'Santo Amaro',
+    'Larissa Gabriely Fonseca de Lima' : 'Campinas',
+    'Ana Carolina da Silva Coloma' : 'Copacabana',
+    'Luana Rodrigues Parrillo' : 'Santos',
+    'Caroline aparecida dos Santos Costa' : 'Lapa',
+    'Vanessa Trajano Lopes' : 'Santos',
+    'Lorrana Assis Santana de Souza' : 'Tatuapé',
+    'Pamela Sabrina do Nascimento Lima' : 'Vila Mascote',
+    'Jacqueline Santos da Silva' : 'Guarulhos',
+    'Isadora Cristina Harder de Almeida' : 'Sorocaba',
+    'Lawany Fernanda dos Santos' : 'São Bernardo',
+    'Sabrina Caroline de Jesus Ferreira' : 'Moema',
+    'Gisely Gutierres Araújo Conservani' : 'Sorocaba',
+    'Ethel Castro Flexa Ribeiro Bastos' : 'Tijuca',
+    'Thais Silva Lima' : 'Itaim Bibi',
+    'Vitoria Lins Ferreira' : 'Mooca',
+    'Lara Goncalo Aparicio' : 'Jardins',
+    'Ingrid Porciuncula Ferreira da Silva' : 'Jardins'
+}

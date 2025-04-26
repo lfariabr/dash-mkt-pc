@@ -176,6 +176,8 @@ def load_page_marketing():
                     "Play",
                     icon="🎲", 
                     type="primary"):
+            from utils.discord import send_discord_message
+            send_discord_message(f"Loading data in page marketing_view")
 
             st.markdown("---")
 

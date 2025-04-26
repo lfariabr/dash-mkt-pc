@@ -46,6 +46,8 @@ def load_page_leadsByUser():
     start_date, end_date = date_input()
     
     if st.button("Carregar"):
+        from utils.discord import send_discord_message
+        send_discord_message(f"Loading data in page leadsByUserReport_view")
         with st.spinner("Carregando dados..."):
             df_leadsByUser, df_appointments = load_data(start_date, end_date)
             
@@ -55,9 +57,9 @@ def load_page_leadsByUser():
             else:
 
                 # Debugging...
-                st.write(f"dfleadsByUser raw: {len(df_leadsByUser)} rows")
-                st.dataframe(df_leadsByUser)
-                st.write("---")
+                # st.write(f"dfleadsByUser raw: {len(df_leadsByUser)} rows")
+                # st.dataframe(df_leadsByUser)
+                # st.write("---")
                 
                 # Select basic columns and rename them
                 df_leadsByUser = df_leadsByUser[leadsByUserColumns]
@@ -99,7 +101,7 @@ def load_page_leadsByUser():
                 })
                 
                 df_leadsByUser = df_leadsByUser.reset_index(drop=True)
-                df_leadsByUser = df_leadsByUser.sort_values(by='Leads Puxados (únicos)', ascending=False)
+                df_leadsByUser = df_leadsByUser.sort_values(by='Leads Puxados', ascending=False)
                 
                 # Extract Attendants from the pre-defined lists
                 df_leadsByUser_manha = df_leadsByUser[df_leadsByUser['Atendente'].isin(atendentes_puxadas_manha.keys())]
@@ -158,10 +160,10 @@ def load_page_leadsByUser():
                 df_leadsByUser_and_appointments_tarde = df_leadsByUser_and_appointments_tarde.rename(columns={'ID agendamento': 'Agendamentos na Agenda'})
                 
                 # Displaying merged dataframes
-                st.subheader("Leads e Agendamentos do Turno da Manhã")
+                st.subheader("Leads e Agendamentos - Manhã")
                 st.dataframe(df_leadsByUser_and_appointments_manha, hide_index=True, height=len(df_leadsByUser_and_appointments_manha) * 40)
 
-                st.subheader("Leads e Agendamentos do Turno da Tarde")
+                st.subheader("Leads e Agendamentos - Tarde")
                 st.dataframe(df_leadsByUser_and_appointments_tarde, hide_index=True, height=len(df_leadsByUser_and_appointments_tarde) * 40)
 
                 df_leadsByUser_and_appointments_all = pd.concat(
@@ -170,11 +172,11 @@ def load_page_leadsByUser():
                 )
                 df_leadsByUser_and_appointments_all.sort_values(by='Leads Puxados (únicos)', ascending=False, inplace=True)
                 
-                st.subheader("Leads e Agendamentos Fechamento do Dia")
+                st.subheader("Leads e Agendamentos - Fechamento")
                 st.dataframe(df_leadsByUser_and_appointments_all, hide_index=True, height=len(df_leadsByUser_and_appointments_all) * 40)
 
                 # Debugging appointments of Atendente "Ingrid Caroline Santos Andrade"
-                df_appointments_atendentes_ingrid = df_appointments_agendamentos_filtered_coc_rules[df_appointments_agendamentos_filtered_coc_rules['Nome da primeira atendente'] == 'Ingrid Caroline Santos Andrade']
-                df_appointments_atendentes_ingrid_valid = df_appointments_atendentes_ingrid[df_appointments_atendentes_ingrid['data_primeira_atendente_is_start_date?'] == True]
-                st.subheader(f"Debugging appointments from 'Ingrid Caroline Santos Andrade': {len(df_appointments_atendentes_ingrid_valid)}")
-                st.dataframe(df_appointments_atendentes_ingrid_valid, hide_index=True)
+                # df_appointments_atendentes_ingrid = df_appointments_agendamentos_filtered_coc_rules[df_appointments_agendamentos_filtered_coc_rules['Nome da primeira atendente'] == 'Ingrid Caroline Santos Andrade']
+                # df_appointments_atendentes_ingrid_valid = df_appointments_atendentes_ingrid[df_appointments_atendentes_ingrid['data_primeira_atendente_is_start_date?'] == True]
+                # st.subheader(f"Debugging appointments from 'Ingrid Caroline Santos Andrade': {len(df_appointments_atendentes_ingrid_valid)}")
+                # st.dataframe(df_appointments_atendentes_ingrid_valid, hide_index=True)

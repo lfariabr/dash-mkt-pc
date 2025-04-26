@@ -1,11 +1,19 @@
-import streamlit as st
-import pandas as pd
-from datetime import datetime, timedelta
 import asyncio
+import pandas as pd
+import streamlit as st
+from datetime import datetime, timedelta
+from components.date_input import date_input
 from apiCrm.resolvers.fetch_followUpEntriesReport import fetch_and_process_followUpEntriesReport
 from apiCrm.resolvers.fetch_followUpsCommentsReport import fetch_and_process_followUpsCommentsReport
 from apiCrm.resolvers.fetch_grossSalesReport import fetch_and_process_grossSales_report
-from components.date_input import date_input
+from views.coc.consultoras import consultoras_manha, consultoras_tarde
+from views.coc.columns import (
+    followUpEntries_display_columns,
+    followUpEntries_display_columns_initial_columns,
+    followUpComments_display_columns,
+    followUpComments_display_columns_initial_columns,
+    grossSales_display_columns
+)
 
 async def fetch_all_data(start_date, end_date):
     """Run both API calls concurrently to improve performance"""
@@ -43,61 +51,21 @@ def load_page_followUpReport_and_followUpCommentsReport():
     start_date, end_date = date_input()
     
     if st.button("Carregar"):
+        from utils.discord import send_discord_message
+        send_discord_message(f"Loading data in page followUpReport_view")
         with st.spinner("Carregando dados..."):
 
             df_entries, df_comments, df_gross_sales = load_data(start_date, end_date)
             
             st.markdown("---")
-            st.subheader("Novos Pós-Vendas")
-
-            entries_columns = ['name', 'follow_ups_count', 'customer_ids']
-            df_entries = df_entries[entries_columns]
+            # Relatório de Novas Tarefas de Pós Vendas
+            #######################################
+            df_entries = df_entries[followUpEntries_display_columns_initial_columns]
             df_entries = df_entries.rename(columns={
                 'name': 'Consultora de Vendas',
                 'follow_ups_count': 'Novos Pós-Vendas',
                 'customer_ids': 'ID dos Clientes'
             })
-
-            consultoras_manha = {
-                'Bruna Nascimento Rangel' : 'Copacabana',
-                'Anna Flavia Medeiros Paiva' : 'Tijuca',
-                'Barbara Sumire Ireijo Bravo' : 'Santos',
-                'Carla Tais de Souza Lamego' : 'Jardins',
-                'Gabriela Rodrigues Evaristo Barbosa' : 'Osasco',
-                'Joyce Bearari da Silva' : 'Campinas',
-                'Claudia Vitoria Xavier da Silva' : 'Moema',
-                'Laryssa Benicio Santos' : 'Londrina',
-                'Julia Bigliazzi Amorim Nogueira' : 'Ipiranga',
-                'Diana da Silva Sousa' : 'Jardins',
-                'Beatriz Emanoela da Silva' : 'Tatuapé',
-                'Larissa Teixeira da Rocha' : 'Tucuruvi',
-                'Leticia Araujo Dos Santos' : 'Lapa'
-            }
-
-            consultoras_tarde = {
-                'Ana Carolina da Silva Coloma' : 'Copacabana',
-                'Caroline aparecida dos Santos Costa' : 'Lapa',
-                'Ingrid Porciuncula Ferreira da Silva' : 'Jardins',
-                'Larissa Gabriely Fonseca de Lima' : 'Campinas',
-                'Vitoria Lins Ferreira' : 'Mooca',
-                'Lorrana Assis Santana de Souza' : 'Tatuapé',
-                'Pamela Sabrina do Nascimento Lima' : 'Vila Mascote',
-                'Ethel Castro Flexa Ribeiro Bastos' : 'Tijuca',
-                'Isadora Cristina Harder de Almeida' : 'Sorocaba',
-                'Vanessa Trajano Lopes' : 'Santos',
-                'Luana Rodrigues Parrillo' : 'Santos',
-                'Jessica Oliveira de Azevedo' : 'Santo Amaro',
-                'Eskarlete Kloh Matos' : 'Osasco',
-                'Lara Goncalo Aparicio' : 'Jardins',
-                'Alessandra Araújo de Oliveira' : 'Tatuapé',
-                'Yasmin Emanuele Dal-Bó Teixeira' : 'Londrina',
-                'Jacqueline Santos da Silva' : 'Guarulhos',
-                'Sabrina Caroline de Jesus Ferreira' : 'Moema',
-                'Kathelyn Matoso Pinheiro dos Santos' : 'Santo Amaro',
-                'Thais Silva Lima' : 'Itaim Bibi',
-                'Lawany Fernanda dos Santos' : 'São Bernardo',
-                'Beatriz Abrantes Duarte' : 'Ipiranga'
-            }
 
             # Add location and shift info:
             for consultora, local in consultoras_manha.items():
@@ -114,40 +82,25 @@ def load_page_followUpReport_and_followUpCommentsReport():
             
             df_entries['Tam'] = 'P'  # Default team
             
-            # Rename columns
             df_entries = df_entries.rename(columns={
                 'name': 'Consultora de Vendas',
                 'follow_ups_count': 'Novos Pós-Vendas',
                 'customer_ids': 'ID dos Clientes'
             })
             
-            # Define display columns order
-            display_columns = ['Consultora de Vendas', 'Unidade', 'Turno', 'Tam',
-                                'Novos Pós-Vendas'] #, 'ID dos Clientes']
-            
-            # Display dataframes
-            df_entries = df_entries[display_columns]
-
-            # Filter to show only consultoras from the lists
+            df_entries = df_entries[followUpEntries_display_columns]
             df_entries_consultoras_manha = df_entries[df_entries['Consultora de Vendas'].isin(consultoras_manha.keys())]
             df_entries_consultoras_tarde = df_entries[df_entries['Consultora de Vendas'].isin(consultoras_tarde.keys())]
             
-            # Sort by Consultora de Vendas
             df_entries_consultoras_manha = df_entries_consultoras_manha.sort_values(by='Novos Pós-Vendas', ascending=False)
             df_entries_consultoras_tarde = df_entries_consultoras_tarde.sort_values(by='Novos Pós-Vendas', ascending=False)
             
-            # Display dataframes
-            st.subheader("Consultoras do Turno da Manhã")
-            st.dataframe(df_entries_consultoras_manha[display_columns], hide_index=True)
+            df_entries_consultoras_manha_filtered = df_entries_consultoras_manha[followUpEntries_display_columns]
+            df_entries_consultoras_tarde_filtered = df_entries_consultoras_tarde[followUpEntries_display_columns]
             
-            st.subheader("Consultoras do Turno da Tarde")
-            st.dataframe(df_entries_consultoras_tarde[display_columns], hide_index=True)
-            
-            st.markdown("---")
-            st.subheader("Comentários de Pós-Vendas")
-
-            comments_columns = ['name', 'comments_count', 'comments_customer_ids']
-            df_comments = df_comments[comments_columns]
+            # Relatório de Comentários de Tarefas de Pós Vendas
+            #######################################s
+            df_comments = df_comments[followUpComments_display_columns_initial_columns]
             df_comments = df_comments.rename(columns={
                 'name': 'Consultora de Vendas',
                 'comments_count': 'Comentários de Pós-Vendas',
@@ -168,62 +121,84 @@ def load_page_followUpReport_and_followUpCommentsReport():
                     df_comments.loc[mask, 'Turno'] = 'Tarde'
             
             df_comments['Tam'] = 'P'  # Default team
-            
-            # Define display columns order
-            display_columns = ['Consultora de Vendas', 'Unidade', 'Turno', 'Tam',
-                                'Comentários de Pós-Vendas'] #, 'ID dos Clientes']
-            
-            # Display dataframes
-            df_comments = df_comments[display_columns]
+    
+            df_comments = df_comments[followUpComments_display_columns]
 
-            # Filter to show only consultoras from the lists
             df_comments_consultoras_manha = df_comments[df_comments['Consultora de Vendas'].isin(consultoras_manha.keys())]
-            df_comments_consultoras_tarde = df_comments[df_comments['Consultora de Vendas'].isin(consultoras_tarde.keys())]
-            
-            # Reset index
             df_comments_consultoras_manha = df_comments_consultoras_manha.reset_index(drop=True)
+            df_comments_consultoras_manha = df_comments_consultoras_manha.sort_values(by='Comentários de Pós-Vendas', ascending=False)            
+            df_comments_consultoras_tarde = df_comments[df_comments['Consultora de Vendas'].isin(consultoras_tarde.keys())]
             df_comments_consultoras_tarde = df_comments_consultoras_tarde.reset_index(drop=True)
-            
-            # Sort by Consultora de Vendas
-            df_comments_consultoras_manha = df_comments_consultoras_manha.sort_values(by='Comentários de Pós-Vendas', ascending=False)
             df_comments_consultoras_tarde = df_comments_consultoras_tarde.sort_values(by='Comentários de Pós-Vendas', ascending=False)
             
-            # Display dataframes
-            st.subheader("Consultoras do Turno da Manhã")
-            st.dataframe(df_comments_consultoras_manha[display_columns], hide_index=True)
-            
-            st.subheader("Consultoras do Turno da Tarde")
-            st.dataframe(df_comments_consultoras_tarde[display_columns], hide_index=True)
+            df_comments_consultoras_manha_filtered = df_comments_consultoras_manha[followUpComments_display_columns]
+            df_comments_consultoras_tarde_filtered = df_comments_consultoras_tarde[followUpComments_display_columns]
 
-            # Special treatments
-            sales_display_columns = ['createdBy', 'chargableTotal', 'statusLabel']
+            # Relatório de Venda Mensal Bruta
+            #######################################
             df_gross_sales['chargableTotal'] = pd.to_numeric(df_gross_sales['chargableTotal'], errors='coerce').fillna(0)
             df_gross_sales['chargableTotal'] = df_gross_sales['chargableTotal'] / 100
             df_gross_sales['chargableTotal'] = df_gross_sales['chargableTotal'].astype(float)
-            df_gross_sales_filtered = df_gross_sales[sales_display_columns]
+            df_gross_sales = df_gross_sales.loc[df_gross_sales['statusLabel'] == 'Finalizado']
+
+            df_gross_sales_filtered = df_gross_sales[grossSales_display_columns]
             
-            # Groupbying Sales per Consultora
-            df_gross_sales_grouped = df_gross_sales_filtered.groupby('createdBy').agg({'chargableTotal': 'sum'}).reset_index()
-            df_gross_sales_grouped = df_gross_sales_grouped.rename(columns={'createdBy': 'Consultora de Vendas', 'chargableTotal': 'Valor líquido'})
+            df_gross_sales_grouped = df_gross_sales_filtered.groupby('createdBy').agg({'chargableTotal': 'sum', 'id': 'nunique'}).reset_index()
+            df_gross_sales_grouped = df_gross_sales_grouped.rename(columns={'createdBy': 'Consultora de Vendas', 'chargableTotal': 'Valor líquido', 'id': 'Pedidos'})
             
-            # Filter to show only consultoras from the lists
             df_gross_sales_manha = df_gross_sales_grouped[df_gross_sales_grouped['Consultora de Vendas'].isin(consultoras_manha.keys())]
             df_gross_sales_tarde = df_gross_sales_grouped[df_gross_sales_grouped['Consultora de Vendas'].isin(consultoras_tarde.keys())]
             
-            # Sort by Consultora de Vendas
             df_gross_sales_manha = df_gross_sales_manha.sort_values(by='Valor líquido', ascending=False)
             df_gross_sales_tarde = df_gross_sales_tarde.sort_values(by='Valor líquido', ascending=False)
             
-            # Display dataframes
-            st.subheader("Consultoras do Turno da Manhã - Total de Vendas")
-            st.dataframe(df_gross_sales_manha, hide_index=True)
+            # Merging dataframes -> Manhã
+            merged_followUps_manha = pd.merge(
+                df_entries_consultoras_manha_filtered, 
+                df_comments_consultoras_manha_filtered,
+                on='Consultora de Vendas')
+            merged_followUpsAndSales_manha = pd.merge(
+                merged_followUps_manha,
+                df_gross_sales_manha,
+                on='Consultora de Vendas')
+
+            merged_followUpsAndSales_manha = merged_followUpsAndSales_manha.drop(columns=['Unidade_y', 'Tam_y', 'Turno_y'])
+            merged_followUpsAndSales_manha = merged_followUpsAndSales_manha.rename(columns={'Unidade_x': 'Unidade', 'Tam_x': 'Tam', 'Turno_x': 'Turno'})
+            merged_followUpsAndSales_manha = merged_followUpsAndSales_manha.sort_values(by='Comentários de Pós-Vendas', ascending=False)
+            merged_followUpsAndSales_manha = merged_followUpsAndSales_manha.drop_duplicates(subset='Consultora de Vendas', keep='first')
             
-            st.subheader("Consultoras do Turno da Tarde - Total de Vendas")
-            st.dataframe(df_gross_sales_tarde, hide_index=True)
+            # Merging dataframes -> Tarde
+            merged_followUps_tarde = pd.merge(
+                df_entries_consultoras_tarde_filtered,
+                df_comments_consultoras_tarde_filtered,
+                on='Consultora de Vendas')
+            merged_followUpsAndSales_tarde = pd.merge(
+                merged_followUps_tarde,
+                df_gross_sales_tarde,
+                on='Consultora de Vendas')
+
+            merged_followUpsAndSales_tarde = merged_followUpsAndSales_tarde.drop(columns=['Unidade_y', 'Tam_y', 'Turno_y'])
+            merged_followUpsAndSales_tarde = merged_followUpsAndSales_tarde.rename(columns={'Unidade_x': 'Unidade', 'Tam_x': 'Tam', 'Turno_x': 'Turno'})
+            merged_followUpsAndSales_tarde = merged_followUpsAndSales_tarde.sort_values(by='Comentários de Pós-Vendas', ascending=False)
+            merged_followUpsAndSales_tarde = merged_followUpsAndSales_tarde.drop_duplicates(subset='Consultora de Vendas', keep='first')
+            
+            # Merging dataframes -> Fechamento
+            df_merged_followUpsAndSales_all = pd.concat(
+                    [merged_followUpsAndSales_manha, merged_followUpsAndSales_tarde],
+                    ignore_index=True
+                )
+            df_merged_followUpsAndSales_all.sort_values(by='Comentários de Pós-Vendas', ascending=False, inplace=True)
+
+            st.subheader("Consultoras Manhã - Total de Vendas")
+            st.dataframe(merged_followUpsAndSales_manha, hide_index=True, height=len(merged_followUpsAndSales_manha) * 40)
+            
+            st.subheader("Consultoras Tarde - Total de Vendas")
+            st.dataframe(merged_followUpsAndSales_tarde, hide_index=True, height=len(merged_followUpsAndSales_tarde) * 40)
+
+            st.subheader("Consultoras - Fechamento")
+            st.dataframe(df_merged_followUpsAndSales_all, hide_index=True, height=len(df_merged_followUpsAndSales_all) * 40)
 
             # TOTAL SUM OF DF_GROSS_SALES:
-            total_sum = df_gross_sales['Valor líquido'].sum()
-            st.subheader(f"Total de Vendas: R$ {total_sum:.2f}")
-
-            # TODO Merge total sum with total sum of df_entries + df_comments
-            # pending
+            # total_sum = df_gross_sales['chargableTotal'].sum()
+            # st.subheader(f"Total de Vendas: R$ {total_sum:.2f}")
+            # st.dataframe(df_gross_sales, hide_index=True)

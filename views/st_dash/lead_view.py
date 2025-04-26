@@ -101,6 +101,8 @@ def load_page_leads():
     start_date, end_date = date_input()
     
     if st.button("Carregar"):
+        from utils.discord import send_discord_message
+        send_discord_message(f"Loading data in page leads_view")
         with st.spinner("Carregando dados..."):
             df_leads = load_data(start_date, end_date)
     
