@@ -14,6 +14,7 @@ from views.coc.columns import (
     followUpComments_display_columns_initial_columns,
     grossSales_display_columns
 )
+from helpers.data_wrestler import highlight_total_row, append_totals_row, enrich_consultora_df
 
 async def fetch_all_data(start_date, end_date):
     """Run both API calls concurrently to improve performance"""
@@ -58,8 +59,9 @@ def load_page_followUpReport_and_followUpCommentsReport():
             df_entries, df_comments, df_gross_sales = load_data(start_date, end_date)
             
             st.markdown("---")
+
             # Relatório de Novas Tarefas de Pós Vendas
-            #######################################
+            ################## START #####################
             df_entries = df_entries[followUpEntries_display_columns_initial_columns]
             df_entries = df_entries.rename(columns={
                 'name': 'Consultora de Vendas',
@@ -68,17 +70,8 @@ def load_page_followUpReport_and_followUpCommentsReport():
             })
 
             # Add location and shift info:
-            for consultora, local in consultoras_manha.items():
-                mask = df_entries['Consultora de Vendas'] == consultora
-                if mask.any():
-                    df_entries.loc[mask, 'Unidade'] = local
-                    df_entries.loc[mask, 'Turno'] = 'Manhã'
-            
-            for consultora, local in consultoras_tarde.items():
-                mask = df_entries['Consultora de Vendas'] == consultora
-                if mask.any():
-                    df_entries.loc[mask, 'Unidade'] = local
-                    df_entries.loc[mask, 'Turno'] = 'Tarde'
+            df_entries = enrich_consultora_df(df_entries, consultoras_manha, 'Manhã')
+            df_entries = enrich_consultora_df(df_entries, consultoras_tarde, 'Tarde')
             
             df_entries['Tam'] = 'P'  # Default team
             
@@ -97,9 +90,10 @@ def load_page_followUpReport_and_followUpCommentsReport():
             
             df_entries_consultoras_manha_filtered = df_entries_consultoras_manha[followUpEntries_display_columns]
             df_entries_consultoras_tarde_filtered = df_entries_consultoras_tarde[followUpEntries_display_columns]
-            
+            ################## END #####################
+
             # Relatório de Comentários de Tarefas de Pós Vendas
-            #######################################s
+            ################## START #####################
             df_comments = df_comments[followUpComments_display_columns_initial_columns]
             df_comments = df_comments.rename(columns={
                 'name': 'Consultora de Vendas',
@@ -107,21 +101,9 @@ def load_page_followUpReport_and_followUpCommentsReport():
                 'comments_customer_ids': 'ID dos Clientes'
             })
             
-            # Add location and shift info:
-            for consultora, local in consultoras_manha.items():
-                mask = df_comments['Consultora de Vendas'] == consultora
-                if mask.any():
-                    df_comments.loc[mask, 'Unidade'] = local
-                    df_comments.loc[mask, 'Turno'] = 'Manhã'
+            df_comments = enrich_consultora_df(df_comments, consultoras_manha, 'Manhã')
+            df_comments = enrich_consultora_df(df_comments, consultoras_tarde, 'Tarde')
             
-            for consultora, local in consultoras_tarde.items():
-                mask = df_comments['Consultora de Vendas'] == consultora
-                if mask.any():
-                    df_comments.loc[mask, 'Unidade'] = local
-                    df_comments.loc[mask, 'Turno'] = 'Tarde'
-            
-            df_comments['Tam'] = 'P'  # Default team
-    
             df_comments = df_comments[followUpComments_display_columns]
 
             df_comments_consultoras_manha = df_comments[df_comments['Consultora de Vendas'].isin(consultoras_manha.keys())]
@@ -133,9 +115,11 @@ def load_page_followUpReport_and_followUpCommentsReport():
             
             df_comments_consultoras_manha_filtered = df_comments_consultoras_manha[followUpComments_display_columns]
             df_comments_consultoras_tarde_filtered = df_comments_consultoras_tarde[followUpComments_display_columns]
+            ################## END #####################
+
 
             # Relatório de Venda Mensal Bruta
-            #######################################
+            ################## START #####################
             df_gross_sales['chargableTotal'] = pd.to_numeric(df_gross_sales['chargableTotal'], errors='coerce').fillna(0)
             df_gross_sales['chargableTotal'] = df_gross_sales['chargableTotal'] / 100
             df_gross_sales['chargableTotal'] = df_gross_sales['chargableTotal'].astype(float)
@@ -147,12 +131,17 @@ def load_page_followUpReport_and_followUpCommentsReport():
             df_gross_sales_grouped = df_gross_sales_grouped.rename(columns={'createdBy': 'Consultora de Vendas', 'chargableTotal': 'Valor líquido', 'id': 'Pedidos'})
             
             df_gross_sales_manha = df_gross_sales_grouped[df_gross_sales_grouped['Consultora de Vendas'].isin(consultoras_manha.keys())]
-            df_gross_sales_tarde = df_gross_sales_grouped[df_gross_sales_grouped['Consultora de Vendas'].isin(consultoras_tarde.keys())]
-            
             df_gross_sales_manha = df_gross_sales_manha.sort_values(by='Valor líquido', ascending=False)
+            df_gross_sales_manha['Valor líquido'] = df_gross_sales_manha['Valor líquido'].round(2)
+
+            df_gross_sales_tarde = df_gross_sales_grouped[df_gross_sales_grouped['Consultora de Vendas'].isin(consultoras_tarde.keys())]
             df_gross_sales_tarde = df_gross_sales_tarde.sort_values(by='Valor líquido', ascending=False)
-            
-            # Merging dataframes -> Manhã
+            df_gross_sales_tarde['Valor líquido'] = df_gross_sales_tarde['Valor líquido'].round(2)
+            ################## END #####################
+
+            # Merging final dfs: Manhã, Tarde and Total
+            ################## START #####################
+            # Manhã
             merged_followUps_manha = pd.merge(
                 df_entries_consultoras_manha_filtered, 
                 df_comments_consultoras_manha_filtered,
@@ -167,7 +156,7 @@ def load_page_followUpReport_and_followUpCommentsReport():
             merged_followUpsAndSales_manha = merged_followUpsAndSales_manha.sort_values(by='Comentários de Pós-Vendas', ascending=False)
             merged_followUpsAndSales_manha = merged_followUpsAndSales_manha.drop_duplicates(subset='Consultora de Vendas', keep='first')
             
-            # Merging dataframes -> Tarde
+            # Tarde
             merged_followUps_tarde = pd.merge(
                 df_entries_consultoras_tarde_filtered,
                 df_comments_consultoras_tarde_filtered,
@@ -182,23 +171,62 @@ def load_page_followUpReport_and_followUpCommentsReport():
             merged_followUpsAndSales_tarde = merged_followUpsAndSales_tarde.sort_values(by='Comentários de Pós-Vendas', ascending=False)
             merged_followUpsAndSales_tarde = merged_followUpsAndSales_tarde.drop_duplicates(subset='Consultora de Vendas', keep='first')
             
-            # Merging dataframes -> Fechamento
+            # Fechamento
             df_merged_followUpsAndSales_all = pd.concat(
                     [merged_followUpsAndSales_manha, merged_followUpsAndSales_tarde],
                     ignore_index=True
                 )
             df_merged_followUpsAndSales_all.sort_values(by='Comentários de Pós-Vendas', ascending=False, inplace=True)
+            ################## END #####################
 
             st.subheader("Consultoras Manhã - Total de Vendas")
-            st.dataframe(merged_followUpsAndSales_manha, hide_index=True, height=len(merged_followUpsAndSales_manha) * 40)
+            merged_followUpsAndSales_manha = append_totals_row(merged_followUpsAndSales_manha)
+            st.dataframe(
+                merged_followUpsAndSales_manha.style
+                .apply(highlight_total_row, axis=1)
+                .format({
+                    'Valor líquido': '{:.2f}',
+                    'Novos Pós-Vendas': '{:.0f}',
+                    'Comentários de Pós-Vendas': '{:.0f}',
+                    'Pedidos': '{:.0f}',
+                }),
+                hide_index=True,
+                height=len(merged_followUpsAndSales_manha) * 40
+            )
             
             st.subheader("Consultoras Tarde - Total de Vendas")
-            st.dataframe(merged_followUpsAndSales_tarde, hide_index=True, height=len(merged_followUpsAndSales_tarde) * 40)
+            # use append_totals_row function
+            merged_followUpsAndSales_tarde = append_totals_row(merged_followUpsAndSales_tarde)
+            st.dataframe(
+                merged_followUpsAndSales_tarde.style
+                .apply(highlight_total_row, axis=1)
+                .format({
+                    'Valor líquido': '{:.2f}',
+                    'Novos Pós-Vendas': '{:.0f}',
+                    'Comentários de Pós-Vendas': '{:.0f}',
+                    'Pedidos': '{:.0f}',
+                }),
+                hide_index=True,
+                height=len(merged_followUpsAndSales_tarde) * 40
+            )
 
             st.subheader("Consultoras - Fechamento")
-            st.dataframe(df_merged_followUpsAndSales_all, hide_index=True, height=len(df_merged_followUpsAndSales_all) * 40)
+            # use append_totals_row function
+            df_merged_followUpsAndSales_all = append_totals_row(df_merged_followUpsAndSales_all)
+            st.dataframe(
+                df_merged_followUpsAndSales_all.style
+                .apply(highlight_total_row, axis=1)
+                .format({
+                    'Valor líquido': '{:.2f}',
+                    'Novos Pós-Vendas': '{:.0f}',
+                    'Comentários de Pós-Vendas': '{:.0f}',
+                    'Pedidos': '{:.0f}',
+                }),
+                hide_index=True,
+                height=len(df_merged_followUpsAndSales_all) * 40
+            )
 
-            # TOTAL SUM OF DF_GROSS_SALES:
+            ## Debugging: TOTAL SUM OF DF_GROSS_SALES:
             # total_sum = df_gross_sales['chargableTotal'].sum()
             # st.subheader(f"Total de Vendas: R$ {total_sum:.2f}")
             # st.dataframe(df_gross_sales, hide_index=True)

@@ -453,3 +453,41 @@ def extract_agendamentos(status_dict):
     if isinstance(status_dict, dict):
         return sum(status_dict.get(status, 0) for status in agendamento_por_lead_column)
     return 0
+
+def highlight_total_row(s):
+    if s['Consultora de Vendas'] == 'Total':
+        return [
+            'background-color: #5B2C6F; color: white; font-weight: bold'
+        ] * len(s)
+    else:
+        return [''] * len(s)
+
+def enrich_consultora_df(df, consultoras_dict, turno_label):
+    for consultora, local in consultoras_dict.items():
+        mask = df['Consultora de Vendas'] == consultora
+        if mask.any():
+            df.loc[mask, 'Unidade'] = local
+            df.loc[mask, 'Turno'] = turno_label
+    df['Tam'] = 'P'
+    return df
+
+def append_totals_row(df, label_col='Consultora de Vendas'):
+    totals_row = df.sum(numeric_only=True)
+
+    int_cols = ['Novos Pós-Vendas', 'Comentários de Pós-Vendas', 'Pedidos']
+    float_cols = ['Valor líquido']
+
+    for col in int_cols:
+        if col in df.columns:
+            totals_row[col] = int(round(totals_row[col]))
+
+    for col in float_cols:
+        if col in df.columns:
+            totals_row[col] = float(round(totals_row[col], 2))
+
+    totals_row[label_col] = 'Total'
+    for col in ['Unidade', 'Turno', 'Tam']:
+        if col in df.columns:
+            totals_row[col] = ''
+
+    return pd.concat([df, totals_row.to_frame().T], ignore_index=True)
