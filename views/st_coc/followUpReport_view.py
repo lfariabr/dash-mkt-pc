@@ -57,7 +57,13 @@ def load_page_followUpReport_and_followUpCommentsReport():
         with st.spinner("Carregando dados..."):
 
             df_entries, df_comments, df_gross_sales = load_data(start_date, end_date)
-            
+            if df_gross_sales.empty:
+                st.error("Não foi possível obter dados de vendas.")
+                df_gross_sales['chargableTotal'] = 0 
+                grouped_columns = ['Consultora de Vendas', 'Valor líquido', 'Pedidos']
+                df_gross_sales_manha = pd.DataFrame(columns=grouped_columns)
+                df_gross_sales_tarde = pd.DataFrame(columns=grouped_columns)
+                return
             st.markdown("---")
 
             # Relatório de Novas Tarefas de Pós Vendas
@@ -130,20 +136,20 @@ def load_page_followUpReport_and_followUpCommentsReport():
                 df_gross_sales['chargableTotal'] = df_gross_sales['chargableTotal'] / 100
                 df_gross_sales['chargableTotal'] = df_gross_sales['chargableTotal'].astype(float)
             
-            df_gross_sales = df_gross_sales.loc[df_gross_sales['statusLabel'] == 'Finalizado']
+                df_gross_sales = df_gross_sales.loc[df_gross_sales['statusLabel'] == 'Finalizado']
 
-            df_gross_sales_filtered = df_gross_sales[grossSales_display_columns]
-            
-            df_gross_sales_grouped = df_gross_sales_filtered.groupby('createdBy').agg({'chargableTotal': 'sum', 'id': 'nunique'}).reset_index()
-            df_gross_sales_grouped = df_gross_sales_grouped.rename(columns={'createdBy': 'Consultora de Vendas', 'chargableTotal': 'Valor líquido', 'id': 'Pedidos'})
-            
-            df_gross_sales_manha = df_gross_sales_grouped[df_gross_sales_grouped['Consultora de Vendas'].isin(consultoras_manha.keys())]
-            df_gross_sales_manha = df_gross_sales_manha.sort_values(by='Valor líquido', ascending=False)
-            df_gross_sales_manha['Valor líquido'] = df_gross_sales_manha['Valor líquido'].round(2)
+                df_gross_sales_filtered = df_gross_sales[grossSales_display_columns]
+                
+                df_gross_sales_grouped = df_gross_sales_filtered.groupby('createdBy').agg({'chargableTotal': 'sum', 'id': 'nunique'}).reset_index()
+                df_gross_sales_grouped = df_gross_sales_grouped.rename(columns={'createdBy': 'Consultora de Vendas', 'chargableTotal': 'Valor líquido', 'id': 'Pedidos'})
+                
+                df_gross_sales_manha = df_gross_sales_grouped[df_gross_sales_grouped['Consultora de Vendas'].isin(consultoras_manha.keys())]
+                df_gross_sales_manha = df_gross_sales_manha.sort_values(by='Valor líquido', ascending=False)
+                df_gross_sales_manha['Valor líquido'] = df_gross_sales_manha['Valor líquido'].round(2)
 
-            df_gross_sales_tarde = df_gross_sales_grouped[df_gross_sales_grouped['Consultora de Vendas'].isin(consultoras_tarde.keys())]
-            df_gross_sales_tarde = df_gross_sales_tarde.sort_values(by='Valor líquido', ascending=False)
-            df_gross_sales_tarde['Valor líquido'] = df_gross_sales_tarde['Valor líquido'].round(2)
+                df_gross_sales_tarde = df_gross_sales_grouped[df_gross_sales_grouped['Consultora de Vendas'].isin(consultoras_tarde.keys())]
+                df_gross_sales_tarde = df_gross_sales_tarde.sort_values(by='Valor líquido', ascending=False)
+                df_gross_sales_tarde['Valor líquido'] = df_gross_sales_tarde['Valor líquido'].round(2)
             ################## END #####################
 
             # Merging final dfs: Manhã, Tarde and Total
