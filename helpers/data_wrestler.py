@@ -498,9 +498,9 @@ def append_totals_row(df, label_col='Consultora de Vendas'):
         if col in df.columns:
             totals_row[col] = int(round(totals_row[col]))
 
-    for col in percentage_cols:
-        if col in df.columns and col in totals_row.index:
-            totals_row[col] = f"{totals_row[col]:.2f}%"
+    for col in float_cols:
+        if col in df.columns:
+            totals_row[col] = float(round(totals_row[col], 2))
 
     totals_row[label_col] = 'Total'
     for col in ['Unidade', 'Turno', 'Tam']:
