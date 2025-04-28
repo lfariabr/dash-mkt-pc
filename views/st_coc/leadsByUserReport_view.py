@@ -5,7 +5,7 @@ from datetime import datetime
 
 from apiCrm.resolvers.fetch_leadsByUserReport import fetch_and_process_leadsByUserReport
 from apiCrm.resolvers.fetch_appointmentReport import fetch_and_process_appointment_report_created_at
-from helpers.data_wrestler import extract_agendamentos # this will feed "Agendamentos_por_lead" column
+from helpers.data_wrestler import extract_agendamentos, enrich_leadsByUser_df, append_total_rows_leadsByUser, highlight_total_row_leadsByUser
 from components.date_input import date_input
 
 from views.appointments.appointment_types import procedimento_avaliacao, agendamento_status_por_atendente
@@ -68,25 +68,8 @@ def load_page_leadsByUser():
                 df_leadsByUser['agendamentos_por_lead'] = 0
                 df_leadsByUser['agendamentos_por_lead'] = df_leadsByUser['messages_count_by_status'].apply(extract_agendamentos)
                                 
-                # Add location from dictionaries
-                df_leadsByUser['local'] = ''
-                df_leadsByUser['turno'] = ''
-                
                 # Add location and shift info
-                for atendente, local in atendentes_puxadas_manha.items():
-                    mask = df_leadsByUser['name'] == atendente
-                    if mask.any():
-                        df_leadsByUser.loc[mask, 'local'] = local
-                        df_leadsByUser.loc[mask, 'turno'] = 'Manhã'
-                
-                for atendente, local in atendentes_puxadas_tarde.items():
-                    mask = df_leadsByUser['name'] == atendente
-                    if mask.any():
-                        df_leadsByUser.loc[mask, 'local'] = local
-                        df_leadsByUser.loc[mask, 'turno'] = 'Tarde'
-                
-                # Add a default team column (can be customized later)
-                df_leadsByUser['Tam'] = 'P'  # Default team
+                df_leadsByUser = enrich_leadsByUser_df(df_leadsByUser, atendentes_puxadas_manha, atendentes_puxadas_tarde)
                 
                 # Rename columns
                 df_leadsByUser = df_leadsByUser.rename(columns={
@@ -150,30 +133,81 @@ def load_page_leadsByUser():
                 # st.dataframe(df_appointments_atendentes_tarde_grouped, hide_index=True)
 
                 # Merging Puxadas with Appointments + Final Touch
-                df_leadsByUser_and_appointments_manha = pd.merge(df_leadsByUser_manha_filtered, df_appointments_atendentes_manha_grouped, left_on='Atendente', right_on='Nome da primeira atendente', how='left')
+                df_leadsByUser_and_appointments_manha = pd.merge(
+                    df_leadsByUser_manha_filtered,
+                    df_appointments_atendentes_manha_grouped,
+                    left_on='Atendente',
+                    right_on='Nome da primeira atendente',
+                    how='left'
+                )
                 df_leadsByUser_and_appointments_manha = df_leadsByUser_and_appointments_manha.drop(columns=['Nome da primeira atendente'])
                 df_leadsByUser_and_appointments_manha = df_leadsByUser_and_appointments_manha.fillna(0)
                 df_leadsByUser_and_appointments_manha = df_leadsByUser_and_appointments_manha.rename(columns={'ID agendamento': 'Agendamentos na Agenda'})
-                df_leadsByUser_and_appointments_tarde = pd.merge(df_leadsByUser_tarde_filtered, df_appointments_atendentes_tarde_grouped, left_on='Atendente', right_on='Nome da primeira atendente', how='left')
+
+                df_leadsByUser_and_appointments_tarde = pd.merge(
+                    df_leadsByUser_tarde_filtered,
+                    df_appointments_atendentes_tarde_grouped,
+                    left_on='Atendente',
+                    right_on='Nome da primeira atendente',
+                    how='left'
+                )
                 df_leadsByUser_and_appointments_tarde = df_leadsByUser_and_appointments_tarde.drop(columns=['Nome da primeira atendente'])
                 df_leadsByUser_and_appointments_tarde = df_leadsByUser_and_appointments_tarde.fillna(0)
                 df_leadsByUser_and_appointments_tarde = df_leadsByUser_and_appointments_tarde.rename(columns={'ID agendamento': 'Agendamentos na Agenda'})
+
+                # --- Adding TOTALS before displaying ---
+                df_leadsByUser_and_appointments_manha_totals = append_total_rows_leadsByUser(df_leadsByUser_and_appointments_manha)
+                df_leadsByUser_and_appointments_tarde_totals = append_total_rows_leadsByUser(df_leadsByUser_and_appointments_tarde)
                 
-                # Displaying merged dataframes
                 st.subheader("Leads e Agendamentos - Manhã")
-                st.dataframe(df_leadsByUser_and_appointments_manha, hide_index=True, height=len(df_leadsByUser_and_appointments_manha) * 40)
+                st.dataframe(
+                    df_leadsByUser_and_appointments_manha_totals.style
+                    .apply(highlight_total_row_leadsByUser, axis=1)
+                    .format({
+                        'Leads Puxados': '{:.0f}',
+                        'Leads Puxados (únicos)': '{:.0f}',
+                        'Agendamentos por lead': '{:.0f}',
+                        'Agendamentos na Agenda': '{:.0f}'
+                    }),
+                    hide_index=True,
+                    height=len(df_leadsByUser_and_appointments_manha)* 45, 
+                    use_container_width=True)
 
                 st.subheader("Leads e Agendamentos - Tarde")
-                st.dataframe(df_leadsByUser_and_appointments_tarde, hide_index=True, height=len(df_leadsByUser_and_appointments_tarde) * 40)
+                st.dataframe(
+                    df_leadsByUser_and_appointments_tarde_totals.style
+                    .apply(highlight_total_row_leadsByUser, axis=1)
+                    .format({
+                        'Leads Puxados': '{:.0f}',
+                        'Leads Puxados (únicos)': '{:.0f}',
+                        'Agendamentos por lead': '{:.0f}',
+                        'Agendamentos na Agenda': '{:.0f}'
+                    }),
+                    hide_index=True,
+                    height=len(df_leadsByUser_and_appointments_tarde) * 45,
+                    use_container_width=True)
 
+                # --- Merge both dataframes without total just yet ---
                 df_leadsByUser_and_appointments_all = pd.concat(
                     [df_leadsByUser_and_appointments_manha, df_leadsByUser_and_appointments_tarde],
                     ignore_index=True
                 )
                 df_leadsByUser_and_appointments_all.sort_values(by='Leads Puxados (únicos)', ascending=False, inplace=True)
-                
+                df_leadsByUser_and_appointments_all = append_total_rows_leadsByUser(df_leadsByUser_and_appointments_all)
+
                 st.subheader("Leads e Agendamentos - Fechamento")
-                st.dataframe(df_leadsByUser_and_appointments_all, hide_index=True, height=len(df_leadsByUser_and_appointments_all) * 40)
+                st.dataframe(
+                    df_leadsByUser_and_appointments_all.style
+                    .apply(highlight_total_row_leadsByUser, axis=1)
+                    .format({
+                        'Leads Puxados': '{:.0f}',
+                        'Leads Puxados (únicos)': '{:.0f}',
+                        'Agendamentos por lead': '{:.0f}',
+                        'Agendamentos na Agenda': '{:.0f}'
+                    }),
+                    hide_index=True,
+                    height=len(df_leadsByUser_and_appointments_all) * 45,
+                    use_container_width=True)
 
                 # Debugging appointments of Atendente "Ingrid Caroline Santos Andrade"
                 # df_appointments_atendentes_ingrid = df_appointments_agendamentos_filtered_coc_rules[df_appointments_agendamentos_filtered_coc_rules['Nome da primeira atendente'] == 'Ingrid Caroline Santos Andrade']

@@ -450,12 +450,29 @@ def save_data_to_db_batch(df_leads_with_purchases):
     return overall_success, user_message
 
 def extract_agendamentos(status_dict):
+    """
+    Extracts the sum of values from a dictionary where keys are in the list `agendamento_por_lead_column`.
+    
+    Args:
+        status_dict (dict): Dictionary containing status values.
+    
+    Returns:
+        int: Sum of values corresponding to keys in `agendamento_por_lead_column`.
+    """
     if isinstance(status_dict, dict):
         return sum(status_dict.get(status, 0) for status in agendamento_por_lead_column)
     return 0
 
 def highlight_total_row(s):
     if s['Consultora de Vendas'] == 'Total':
+        return [
+            'background-color: #5B2C6F; color: white; font-weight: bold'
+        ] * len(s)
+    else:
+        return [''] * len(s)
+
+def highlight_total_row_leadsByUser(s):
+    if s['Atendente'] == 'Total':
         return [
             'background-color: #5B2C6F; color: white; font-weight: bold'
         ] * len(s)
@@ -481,9 +498,9 @@ def append_totals_row(df, label_col='Consultora de Vendas'):
         if col in df.columns:
             totals_row[col] = int(round(totals_row[col]))
 
-    for col in float_cols:
-        if col in df.columns:
-            totals_row[col] = float(round(totals_row[col], 2))
+    for col in percentage_cols:
+        if col in df.columns and col in totals_row.index:
+            totals_row[col] = f"{totals_row[col]:.2f}%"
 
     totals_row[label_col] = 'Total'
     for col in ['Unidade', 'Turno', 'Tam']:
@@ -491,3 +508,39 @@ def append_totals_row(df, label_col='Consultora de Vendas'):
             totals_row[col] = ''
 
     return pd.concat([df, totals_row.to_frame().T], ignore_index=True)
+
+def append_total_rows_leadsByUser(df, label_col='Atendente'):
+    totals_row = df.sum(numeric_only=True)
+
+    int_cols = ['Leads Puxados', 'Leads Puxados (únicos)', 'Agendamentos por lead', 'Agendamentos na Agenda']
+
+    for col in int_cols:
+        if col in df.columns and col in totals_row.index:
+            totals_row[col] = int(round(totals_row[col]))
+
+    # Set manual columns that should be empty
+    for col in ['Conversão', 'Unidade', 'Turno', 'Tam']:
+        if col in df.columns:
+            totals_row[col] = ''
+
+    totals_row[label_col] = 'Total'
+
+    return pd.concat([df, totals_row.to_frame().T], ignore_index=True)
+
+def enrich_leadsByUser_df(df, atendentes_puxadas_manha, atendentes_puxadas_tarde):
+    # Ensure columns exist
+    df['Unidade'] = ''
+    df['Turno'] = ''
+    
+    # Merge both dictionaries with shift info
+    all_atendentes = {**{k: ('Manhã', v) for k, v in atendentes_puxadas_manha.items()},
+                      **{k: ('Tarde', v) for k, v in atendentes_puxadas_tarde.items()}}
+    
+    for atendente, (turno, local) in all_atendentes.items():
+        mask = df['name'] == atendente
+        if mask.any():
+            df.loc[mask, 'Unidade'] = local
+            df.loc[mask, 'Turno'] = turno
+    
+    df['Tam'] = 'P'
+    return df
