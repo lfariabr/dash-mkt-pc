@@ -120,9 +120,16 @@ def load_page_followUpReport_and_followUpCommentsReport():
 
             # Relatório de Venda Mensal Bruta
             ################## START #####################
-            df_gross_sales['chargableTotal'] = pd.to_numeric(df_gross_sales['chargableTotal'], errors='coerce').fillna(0)
-            df_gross_sales['chargableTotal'] = df_gross_sales['chargableTotal'] / 100
-            df_gross_sales['chargableTotal'] = df_gross_sales['chargableTotal'].astype(float)
+            if df_gross_sales.empty or 'chargableTotal' not in df_gross_sales.columns:
+                # Handle gracefully (log, show warning, or skip further processing)
+                print("Warning: No gross sales data or 'chargableTotal' column missing.")
+                # Optionally, create the column with default value if needed
+                df_gross_sales['chargableTotal'] = 0    
+            else:
+                df_gross_sales['chargableTotal'] = pd.to_numeric(df_gross_sales['chargableTotal'], errors='coerce').fillna(0)
+                df_gross_sales['chargableTotal'] = df_gross_sales['chargableTotal'] / 100
+                df_gross_sales['chargableTotal'] = df_gross_sales['chargableTotal'].astype(float)
+            
             df_gross_sales = df_gross_sales.loc[df_gross_sales['statusLabel'] == 'Finalizado']
 
             df_gross_sales_filtered = df_gross_sales[grossSales_display_columns]
