@@ -1,4 +1,4 @@
-from pydantic import BaseModel, condecimal
+from pydantic import BaseModel, condecimal, ConfigDict
 from typing import Optional
 from datetime import datetime
 
@@ -30,14 +30,10 @@ class Appointment(AppointmentBase):
     id: int
     created_at: datetime
     updated_at: Optional[datetime]
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Schema for Appointment list response
 class AppointmentList(BaseModel):
     total: int
     appointments: list[Appointment]
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

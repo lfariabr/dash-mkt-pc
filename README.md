@@ -59,7 +59,7 @@ graph TD
 | ETL        | Pandas, Openpyxl         |
 | Caching    | Redis (planned)          |
 | AI/ML      | Scikit-learn, TensorFlow (planned) |
-| Testing    | pytest (planned)                   |
+| Testing    | pytest                  |
 
 ---
 

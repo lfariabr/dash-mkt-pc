@@ -40,3 +40,6 @@ PyYAML==6.0.2
 # Visualization enhancements
 altair==5.4.1  # Used by Streamlit
 pydeck==0.9.1  # Used by Streamlit
+
+# Testing
+pytest==8.2.0

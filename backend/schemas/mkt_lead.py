@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, constr
+from pydantic import BaseModel, EmailStr, constr, ConfigDict
 from typing import Optional
 from datetime import datetime
 
@@ -50,21 +50,17 @@ class MktLeadUpdate(MktLeadBase):
     pass
 
 # Schema for MktLead in response
-class MktLead(MktLeadBase):
+class MktLead(BaseModel):
     lead_id: int
     appointment_count: int
     last_appointment: Optional[datetime]
     created_at: datetime
     updated_at: Optional[datetime]
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        from_attributes = True
-    
 # Schema for MktLead list response
 
 class MktLeadList(BaseModel):
     total: int
     mkt_leads: list[MktLead]
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

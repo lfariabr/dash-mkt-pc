@@ -52,3 +52,5 @@ Thumbs.db
 
 .env
 *.ipynb
+.coverage
+.pytest_cache

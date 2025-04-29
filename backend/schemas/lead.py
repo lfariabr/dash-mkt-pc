@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, constr
+from pydantic import BaseModel, EmailStr, constr, ConfigDict
 from typing import Optional
 from datetime import datetime
 
@@ -45,14 +45,10 @@ class Lead(LeadBase):
     last_appointment: Optional[datetime]
     created_at: datetime
     updated_at: Optional[datetime]
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        from_attributes = True
-        
 # Schema for Lead list response
 class LeadList(BaseModel):
     total: int
     leads: list[Lead]
-    
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

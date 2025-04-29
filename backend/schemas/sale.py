@@ -1,4 +1,4 @@
-from pydantic import BaseModel, condecimal
+from pydantic import BaseModel, condecimal, ConfigDict
 from typing import Optional
 from datetime import datetime
 
@@ -40,14 +40,10 @@ class Sale(SaleBase):
     id: int
     created_at: datetime
     updated_at: Optional[datetime]
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Schema for Sale list response
 class SaleList(BaseModel):
     total: int
     sales: list[Sale]
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
