@@ -55,7 +55,8 @@ Thumbs.db
 
 
 # Streamlit
-.streamlit/
-# .streamlit/st.secrets
-# .streamlit/secrets.toml
-# .streamlit/app-scripts-358413-50efcc466cf9.json
+/streamlit/
+/streamlit/st.secrets
+/streamlit/secrets.toml
+/streamlit/app-scripts-358413-50efcc466cf9.json
+/streamlit/google_service_account.json
