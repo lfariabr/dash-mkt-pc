@@ -10,7 +10,6 @@ from .fetch_graphql import fetch_graphql
 from dotenv import load_dotenv
 import os
 from datetime import datetime
-import streamlit as st
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -29,7 +28,7 @@ async def fetch_appointmentReport(session, start_date: str, end_date: str) -> Li
     """
     current_page = 1
     all_appointments = []
-    api_url = os.getenv('API_CRM_URL', 'https://open-api.eprocorpo.com.br/graphql') or st.secrets['api']['API_CRM_URL']
+    api_url = os.getenv('API_CRM_URL', 'https://open-api.eprocorpo.com.br/graphql')
 
     # Updated query with correct pagination parameters
     query = '''
@@ -353,7 +352,7 @@ async def fetch_appointmentReportCreatedAt(session, start_date: str, end_date: s
     """
     current_page = 1
     all_appointments = []
-    api_url = os.getenv('API_CRM_URL', 'https://open-api.eprocorpo.com.br/graphql') or st.secrets['api']['API_CRM_URL']
+    api_url = os.getenv('API_CRM_URL', 'https://open-api.eprocorpo.com.br/graphql')
 
     # Updated query with correct pagination parameters
     # Updated query with correct pagination parameters
