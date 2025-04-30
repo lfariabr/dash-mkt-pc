@@ -1,40 +1,38 @@
 from google.oauth2.service_account import Credentials
-import json
 import gspread
 import streamlit as st
 import os
-from dotenv import load_dotenv
 import json
+from dotenv import load_dotenv
 
 load_dotenv()
 
-spreadsheet_url = os.getenv("SS_URL")
-
-# https://docs.google.com/spreadsheets/d/1ZaJfzTBwAjHh7LMRWcmaRBX9AhUir7bHFrhc-2AbTOs/
-
 def get_ss_url():
-    return spreadsheet_url
+    # Prefer Streamlit Cloud secrets, fallback to .env
+    return st.secrets["general"]["SS_URL"] if "general" in st.secrets else os.getenv("SS_URL")
 
 def get_gspread_client():
-    # Configure credentials
-    credentials_path = os.getenv("GOOGLE_CREDENTIALS_PATH", ".streamlit/google_service_account.json")
-    if not credentials_path:
-        raise ValueError("Google credentials not found in environment variables.")
-    
     scope = [
         "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive"
     ]
 
-    credentials = Credentials.from_service_account_file(
-        credentials_path,
-        scopes=scope
-    )
+    if "google_service_account" in st.secrets:
+        # 🟢 On Streamlit Cloud
+        credentials = Credentials.from_service_account_info(
+            st.secrets["google_service_account"],
+            scopes=scope
+        )
+    else:
+        # 🧪 On local dev: load from .env path
+        credentials_path = os.getenv("GOOGLE_CREDENTIALS_PATH", ".streamlit/google_service_account.json")
+        if not os.path.exists(credentials_path):
+            raise FileNotFoundError(f"Credentials file not found at: {credentials_path}")
 
-    # Create client
+        credentials = Credentials.from_service_account_file(
+            credentials_path,
+            scopes=scope
+        )
+
     client = gspread.authorize(credentials)
-
     return client
-
-def data_paster():
-    pass
