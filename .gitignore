@@ -31,8 +31,6 @@ ENV/
 *.swp
 *.swo
 
-# Streamlit
-.streamlit/
 
 # OS
 .DS_Store
@@ -54,3 +52,10 @@ Thumbs.db
 *.ipynb
 .coverage
 .pytest_cache
+
+
+# Streamlit
+# .streamlit/
+# .streamlit/st.secrets
+.streamlit/secrets.toml
+.streamlit/app-scripts-358413-50efcc466cf9.json

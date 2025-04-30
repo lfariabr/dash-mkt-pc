@@ -12,8 +12,15 @@ from views.st_dash.sales_view import load_page_sales
 # COC
 from views.st_coc.leadsByUserReport_view import load_page_leadsByUser
 from views.st_coc.followUpReport_view import load_page_followUpReport_and_followUpCommentsReport
+from views.st_coc.adminConsultoras import load_page_adminConsultoras
+from views.st_coc.adminAtendentes import load_page_adminAtendentes
+from views.st_coc.adminLojas import load_page_adminLojas
+
 from views.st_coc.appointmentByUser_view import load_page_appointmentsByUser
 from views.st_coc.appointments_view_CreatedAt import load_page_appointments_CreatedAt
+
+# Test
+from views.testgoogle import load_page_testgoogle
 
 st.set_page_config(
     page_title="Pró-Corpo BI",
@@ -38,6 +45,12 @@ def main():
         "Marketing": {
             "1 - Funil": load_page_marketing,
             "2 - Histórico": load_page_mkt_leads,
+        },
+        "Admin": {
+            # "Teste": load_page_testgoogle,
+            "1 - Consultoras": load_page_adminConsultoras,
+            "2 - Atendentes": load_page_adminAtendentes,
+            "3 - Lojas": load_page_adminLojas,
         }
     }
     
