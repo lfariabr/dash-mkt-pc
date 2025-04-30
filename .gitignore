@@ -54,10 +54,7 @@ Thumbs.db
 .pytest_cache
 
 
-# Streamlit
-/streamlit/
-/streamlit/st.secrets
-/streamlit/secrets.toml
-/streamlit/app-scripts-358413-50efcc466cf9.json
-/streamlit/google_service_account.json
-/streamlit/secrets.toml
+# Correct Streamlit ignore paths
+.streamlit/secrets.toml
+.streamlit/google_service_account.json
+.streamlit/
