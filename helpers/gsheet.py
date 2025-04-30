@@ -28,3 +28,6 @@ def get_gspread_client():
     client = gspread.authorize(credentials)
 
     return client
+
+def data_paster():
+    pass

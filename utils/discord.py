@@ -1,10 +1,11 @@
 import requests
 from dotenv import load_dotenv
 import os
+import streamlit as st
 
 load_dotenv()
 
-WEBHOOK_DISCORD = os.getenv('WEBHOOK_DISCORD')
+WEBHOOK_DISCORD = os.getenv('WEBHOOK_DISCORD') or st.secrets['discord']['webhook_url']
 
 def send_discord_message(message):
     url = WEBHOOK_DISCORD
