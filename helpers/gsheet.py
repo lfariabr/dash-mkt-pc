@@ -3,6 +3,8 @@ import json
 import gspread
 import streamlit as st
 
+# https://docs.google.com/spreadsheets/d/1ZaJfzTBwAjHh7LMRWcmaRBX9AhUir7bHFrhc-2AbTOs/
+
 def get_ss_url():
     return st.secrets["gsheets"]["spreadsheet_url"]
 
