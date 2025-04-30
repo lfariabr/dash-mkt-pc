@@ -20,7 +20,7 @@ from views.st_coc.appointmentByUser_view import load_page_appointmentsByUser
 from views.st_coc.appointments_view_CreatedAt import load_page_appointments_CreatedAt
 
 # Test
-from views.testgoogle import load_page_testgoogle
+# from views.testgoogle import load_page_testgoogle
 
 st.set_page_config(
     page_title="Pró-Corpo BI",
