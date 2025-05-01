@@ -5,6 +5,12 @@ from helpers.gsheet import get_gspread_client, get_ss_url
 from utils.discord import send_discord_message
 
 def load_page_adminLojas():
+    """
+    Load and display lojas data from Google Sheets.
+    
+    Returns:
+        df_lojas: DataFrame containing lojas data
+    """
     st.title("💎 Admin")
     st.markdown("---")
     st.subheader("Lista de Lojas")
@@ -31,7 +37,9 @@ def load_page_adminLojas():
 
                 except Exception as e:
                     st.error(f"Erro ao carregar dados: {str(e)}")
+                    st.info("Por favor, verifique suas credenciais e conexão com o Google Sheets.")
                     return
+
         col1, col2 = st.columns(2)
 
         with col1:
@@ -55,7 +63,8 @@ def load_page_adminLojas():
                 if submit:
                     try:
                         st.session_state["sheet_lojas"].append_row([loja, tamanho])
-                        st.success("Loja inserida com sucesso!")
+                        st.success(f"Loja {loja} inserida com sucesso!")
+                        st.warning("Recarregue a página para atualizar os dados.")
 
                         # Atualiza também o DataFrame no session_state
                         new_row = pd.DataFrame([[loja, tamanho]], columns=st.session_state["headers_lojas"])
