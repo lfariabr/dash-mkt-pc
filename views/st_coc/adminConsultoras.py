@@ -45,36 +45,41 @@ def load_page_adminConsultoras():
                     return
             
     if "df_consultoras" in st.session_state:
-        st.subheader("Consultoras")
-        st.dataframe(
-            st.session_state["df_consultoras"],
-            hide_index=True,
-            height=len(st.session_state["df_consultoras"]) * 35,
-            use_container_width=True
-        )
+        
+        col1, col2 = st.columns(2)
 
-        st.subheader("Inserir Consultora")
-        with st.form("consultoras_form"):
-            col1, col2 = st.columns(2)
-            with col1:
-                consultora = st.text_input("Consultora")
-                unidade = st.text_input("Unidade")
-            with col2:
-                turno = st.text_input("Turno")
-                tam = st.text_input("Tam")
-            submit = st.form_submit_button("Inserir")
+        with col1:
+            st.markdown("##### Consultoras")
+            st.dataframe(
+                st.session_state["df_consultoras"],
+                hide_index=True,
+                height=len(st.session_state["df_consultoras"]) * 35,
+                # use_container_width=True
+            )
 
-            if submit:
-                try:
-                    st.session_state["sheet_consultoras"].append_row([consultora, unidade, turno, tam])
-                    st.success(f"Consultora {consultora} inserida com sucesso!")
-                    st.warning("Recarregue a página para atualizar os dados.")
+        with col2:
+            st.markdown("##### Adicionar Consultora")
+            with st.form("consultoras_form"):
+                col1, col2 = st.columns(2)
+                with col1:
+                    consultora = st.text_input("Consultora")
+                    unidade = st.text_input("Unidade")
+                with col2:
+                    turno = st.text_input("Turno")
+                    tam = st.text_input("Tam")
+                submit = st.form_submit_button("Adicionar")
 
-                    new_row = pd.DataFrame([[consultora, unidade, turno, tam]],
-                                           columns=st.session_state["headers_consultoras"])
-                    st.session_state["df_consultoras"] = pd.concat(
-                        [st.session_state["df_consultoras"], new_row],
-                        ignore_index=True
-                    )
-                except Exception as e:
-                    st.error(f"Erro ao inserir consultora: {str(e)}")
+                if submit:
+                    try:
+                        st.session_state["sheet_consultoras"].append_row([consultora, unidade, turno, tam])
+                        st.success(f"Consultora {consultora} inserida com sucesso!")
+                        st.warning("Recarregue a página para atualizar os dados.")
+
+                        new_row = pd.DataFrame([[consultora, unidade, turno, tam]],
+                                            columns=st.session_state["headers_consultoras"])
+                        st.session_state["df_consultoras"] = pd.concat(
+                            [st.session_state["df_consultoras"], new_row],
+                            ignore_index=True
+                        )
+                    except Exception as e:
+                        st.error(f"Erro ao adicionar consultora: {str(e)}")

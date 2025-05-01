@@ -43,7 +43,7 @@ def load_page_adminLojas():
         col1, col2 = st.columns(2)
 
         with col1:
-            st.subheader("Lojas")
+            st.markdown("##### Lojas")
             # Exibe tabela
             st.dataframe(
                 st.session_state["df_lojas"],
@@ -53,12 +53,12 @@ def load_page_adminLojas():
             )
 
         with col2:
-            st.subheader("Inserir Loja")
+            st.markdown("##### Adicionar Loja")
             # Formulário para inserir nova loja
             with st.form("lojas_form"):
                 loja = st.text_input("Loja")
                 tamanho = st.text_input("Tam")
-                submit = st.form_submit_button("Inserir")
+                submit = st.form_submit_button("Adicionar")
 
                 if submit:
                     try:
@@ -70,4 +70,4 @@ def load_page_adminLojas():
                         new_row = pd.DataFrame([[loja, tamanho]], columns=st.session_state["headers_lojas"])
                         st.session_state["df_lojas"] = pd.concat([st.session_state["df_lojas"], new_row], ignore_index=True)
                     except Exception as e:
-                        st.error(f"Erro ao inserir nova loja: {str(e)}")
+                        st.error(f"Erro ao adicionar nova loja: {str(e)}")

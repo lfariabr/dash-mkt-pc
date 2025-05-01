@@ -45,38 +45,41 @@ def load_page_adminAtendentes():
                     return
                     
                 
-                
     if "df_atendentes" in st.session_state:
-        st.subheader("Atendentes")
-        st.dataframe(
-            st.session_state["df_atendentes"],
-            hide_index=True,
-            height=len(st.session_state["df_atendentes"]) * 35,
-            use_container_width=True
-        )
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("##### Atendentes")
+            st.dataframe(
+                st.session_state["df_atendentes"],
+                hide_index=True,
+                height=len(st.session_state["df_atendentes"]) * 35,
+                # use_container_width=True
+            )
 
-        st.subheader("Inserir Atendente")  
-        with st.form("atendentes_form"):
-            col1, col2 = st.columns(2)
-            with col1:
-                atendente = st.text_input("Atendente")
-                unidade = st.text_input("Unidade")
-            with col2:
-                turno = st.text_input("Turno")
-                tam = st.text_input("Tam")
-            submit = st.form_submit_button("Inserir")
+        with col2:
+            st.markdown("##### Adicionar Atendente")  
+            with st.form("atendentes_form"):
+                col1, col2 = st.columns(2)
+                with col1:
+                    atendente = st.text_input("Atendente")
+                    unidade = st.text_input("Unidade")
+                with col2:
+                    turno = st.text_input("Turno")
+                    tam = st.text_input("Tam")
+                submit = st.form_submit_button("Adicionar")
 
-            if submit:
-                try:
-                    st.session_state["sheet_atendentes"].append_row([atendente, unidade, turno, tam])
-                    st.success(f"Atendente {atendente} inserido com sucesso!")
-                    st.warning("Recarregue a página para atualizar os dados.")
+                if submit:
+                    try:
+                        st.session_state["sheet_atendentes"].append_row([atendente, unidade, turno, tam])
+                        st.success(f"Atendente {atendente} inserido com sucesso!")
+                        st.warning("Recarregue a página para atualizar os dados.")
 
-                    new_row = pd.DataFrame([[atendente, unidade, turno, tam]],
-                                           columns=st.session_state["headers_atendentes"])
-                    st.session_state["df_atendentes"] = pd.concat(
-                        [st.session_state["df_atendentes"], new_row],
-                        ignore_index=True
-                    )
-                except Exception as e:
-                    st.error(f"Erro ao inserir atendente: {str(e)}")
+                        new_row = pd.DataFrame([[atendente, unidade, turno, tam]],
+                                            columns=st.session_state["headers_atendentes"])
+                        st.session_state["df_atendentes"] = pd.concat(
+                            [st.session_state["df_atendentes"], new_row],
+                            ignore_index=True
+                        )
+                    except Exception as e:
+                        st.error(f"Erro ao adicionar atendente: {str(e)}")
