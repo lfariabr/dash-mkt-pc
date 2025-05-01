@@ -5,41 +5,60 @@ from helpers.gsheet import get_gspread_client, get_ss_url
 from utils.discord import send_discord_message
 
 def load_page_adminLojas():
-    """
-    Load and display lojas data from Google Sheets.
-    
-    Returns:
-        None
-    """
-
     st.title("💎 Admin")
     st.markdown("---")
     st.subheader("Lista de Lojas")
 
-    if st.button("Carregar"):
-        send_discord_message(f"Loading data in page adminLojas")
-        with st.spinner("Carregando dados..."):
-            try:
-                spreadsheet_url = get_ss_url()
-                client = get_gspread_client()
+    # Botão para carregar dados ou manter se já estiverem no session_state
+    if st.button("Carregar") or "df_lojas" in st.session_state:
+        if "df_lojas" not in st.session_state:
+            send_discord_message("Loading data in page adminLojas")
+            with st.spinner("Carregando dados..."):
+                try:
+                    spreadsheet_url = get_ss_url()
+                    client = get_gspread_client()
+                    sheet = client.open_by_url(spreadsheet_url).worksheet("lojas")
+                    dados_lojas = sheet.get_all_values()
 
-                # Lojas
-                sheet_name = client.open_by_url(spreadsheet_url)
-                lojas = sheet_name.worksheet("lojas")
-                dados_lojas = lojas.get_all_values()
+                    if not dados_lojas:
+                        st.warning("No data found in the spreadsheet!")
+                        return
 
-                if not dados_lojas:
-                    st.warning("No data found in the spreadsheet!")
-                    st.stop()
-                
-                df_lojas = pd.DataFrame(dados_lojas[1:], columns=dados_lojas[0])
-                st.subheader("Lojas")
-                st.dataframe(
-                    df_lojas,
-                    hide_index=True,
-                    height=len(dados_lojas) * 35,
-                    use_container_width=True)
+                    df_lojas = pd.DataFrame(dados_lojas[1:], columns=dados_lojas[0])
+                    st.session_state["df_lojas"] = df_lojas
+                    st.session_state["headers_lojas"] = dados_lojas[0]
+                    st.session_state["sheet_lojas"] = sheet
 
-            except Exception as e:
-                st.error(f"An error occurred: {str(e)}")
-                st.info("Please check your Google Sheets credentials and connection.")
+                except Exception as e:
+                    st.error(f"Erro ao carregar dados: {str(e)}")
+                    return
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.subheader("Lojas")
+            # Exibe tabela
+            st.dataframe(
+                st.session_state["df_lojas"],
+                hide_index=True,
+                height=len(st.session_state["df_lojas"]) * 40,
+                use_container_width=True
+            )
+
+        with col2:
+            st.subheader("Inserir Loja")
+            # Formulário para inserir nova loja
+            with st.form("lojas_form"):
+                loja = st.text_input("Loja")
+                tamanho = st.text_input("Tam")
+                submit = st.form_submit_button("Inserir")
+
+                if submit:
+                    try:
+                        st.session_state["sheet_lojas"].append_row([loja, tamanho])
+                        st.success("Loja inserida com sucesso!")
+
+                        # Atualiza também o DataFrame no session_state
+                        new_row = pd.DataFrame([[loja, tamanho]], columns=st.session_state["headers_lojas"])
+                        st.session_state["df_lojas"] = pd.concat([st.session_state["df_lojas"], new_row], ignore_index=True)
+                    except Exception as e:
+                        st.error(f"Erro ao inserir nova loja: {str(e)}")

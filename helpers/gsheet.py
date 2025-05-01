@@ -4,9 +4,12 @@ import streamlit as st
 import os
 import json
 from dotenv import load_dotenv
-
 load_dotenv()
 
+"""
+Linha da planilha:
+https://docs.google.com/spreadsheets/d/1ZaJfzTBwAjHh7LMRWcmaRBX9AhUir7bHFrhc-2AbTOs/
+"""
 def get_ss_url():
     # Prefer Streamlit Cloud secrets, fallback to .env
     return st.secrets["general"]["SS_URL"] if "general" in st.secrets else os.getenv("SS_URL")
@@ -36,3 +39,6 @@ def get_gspread_client():
 
     client = gspread.authorize(credentials)
     return client
+
+def push_to_ss():
+    pass
