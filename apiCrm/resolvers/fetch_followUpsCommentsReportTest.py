@@ -10,31 +10,31 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-async def fetch_followUpEntriesReportTest(session, start_date: str, end_date: str) -> List[Dict]:
+async def fetch_followUpsCommentsReportTest(session, start_date: str, end_date: str) -> List[Dict]:
     """
-    Fetches follow-ups entries report data from the CRM API within a specified date range.
-
+    Fetches follow-ups comments report data from the CRM API within a specified date range.
+    
     Args:
         session: The aiohttp ClientSession object
         start_date: Start date in ISO format (YYYY-MM-DD)
         end_date: End date in ISO format (YYYY-MM-DD)
         
     Returns:
-        List of follow-ups entries report dictionaries
+        List of follow-ups comments report dictionaries
     """
-    all_followUpEntries = []
+    all_followUpsComments = []
     api_url = os.getenv('API_CRM_URL', 'https://open-api.eprocorpo.com.br/graphql')
     
     # Updated query with non-nullable types (Date!) for date parameters
     query = '''
-    query FollowUpEntriesReport($start: Date!, $end: Date!, $currentPage: Int!, $perPage: Int!) {
-        followUpEntriesReport(
+    query FollowUpsCommentsReport($start: Date!, $end: Date!, $currentPage: Int!, $perPage: Int!) {
+        followUpsCommentsReport(
             filters: { createdAtRange: { start: $start, end: $end } }
             pagination: { currentPage: $currentPage, perPage: $perPage }
         ) {
             data {
-                customerIds
-                followUpsCount
+                commentsCount
+                commentsCustomerIds
                 name
             }
             meta {
@@ -55,29 +55,29 @@ async def fetch_followUpEntriesReportTest(session, start_date: str, end_date: st
         "perPage": 400  # Keep the original perPage value
     }
     
-    logger.info(f"Attempting to fetch follow-ups entries report from {start_date} to {end_date}")
+    logger.info(f"Attempting to fetch follow-ups comments report from {start_date} to {end_date}")
     
     data = await fetch_graphql(session, api_url, query, variables)
     
     if data is None or 'errors' in data:
         error_msg = data.get('errors', [{'message': 'Unknown error'}])[0]['message'] if data else 'No data returned'
-        logger.error(f"Failed initial follow-ups entries report fetch: {error_msg}")
-        return all_followUpEntries  # Return empty list on initial failure
+        logger.error(f"Failed initial follow-ups comments report fetch: {error_msg}")
+        return all_followUpsComments  # Return empty list on initial failure
     
     try:
-        if 'data' in data and 'followUpEntriesReport' in data['data']:
+        if 'data' in data and 'followUpsCommentsReport' in data['data']:
             # Process first page
-            followUpEntries = data['data']['followUpEntriesReport']['data']
-            meta = data['data']['followUpEntriesReport']['meta']
+            appointments_data = data['data']['followUpsCommentsReport']['data']
+            meta = data['data']['followUpsCommentsReport']['meta']
             
             # Transform first page of data
-            page_transformed = process_followUpEntries_data(followUpEntries, start_date, end_date)
-            all_followUpEntries.extend(page_transformed)
+            page_transformed = process_followUpsComments_data(appointments_data, start_date, end_date)
+            all_followUpsComments.extend(page_transformed)
             
             last_page = meta.get('lastPage', 1)
             total_records = meta.get('total', 0)
             
-            logger.info(f"Successfully fetched page 1/{last_page}, got {len(followUpEntries)} followUpEntries out of approximately {total_records}")
+            logger.info(f"Successfully fetched page 1/{last_page}, got {len(appointments_data)} followUpsComments out of approximately {total_records}")
             
             # If we have more pages, fetch them
             if last_page > 1:
@@ -87,17 +87,17 @@ async def fetch_followUpEntriesReportTest(session, start_date: str, end_date: st
                     
                     if page_data is None or 'errors' in page_data:
                         error_msg = page_data.get('errors', [{'message': 'Unknown error'}])[0]['message'] if page_data else 'No data returned'
-                        logger.error(f"Failed to fetch followUpEntries on page {page}/{last_page}. Error: {error_msg}")
+                        logger.error(f"Failed to fetch followUpsComments on page {page}/{last_page}. Error: {error_msg}")
                         continue
                     
-                    if 'data' in page_data and 'followUpEntriesReport' in page_data['data']:
-                        page_followUpEntries = page_data['data']['followUpEntriesReport']['data']
+                    if 'data' in page_data and 'followUpsCommentsReport' in page_data['data']:
+                        page_followUpsComments = page_data['data']['followUpsCommentsReport']['data']
                         
                         # Transform data for this page
-                        page_transformed = process_followUpEntries_data(page_followUpEntries, start_date, end_date)
-                        all_followUpEntries.extend(page_transformed)
+                        page_transformed = process_followUpsComments_data(page_followUpsComments, start_date, end_date)
+                        all_followUpsComments.extend(page_transformed)
                         
-                        logger.info(f"Successfully fetched page {page}/{last_page}, got {len(page_followUpEntries)} followUpEntries")
+                        logger.info(f"Successfully fetched page {page}/{last_page}, got {len(page_followUpsComments)} followUpsComments")
                     else:
                         logger.error(f"Unexpected API response structure on page {page}: {page_data}")
                     
@@ -107,29 +107,29 @@ async def fetch_followUpEntriesReportTest(session, start_date: str, end_date: st
             logger.error(f"Unexpected API response structure: {data}")
     
     except Exception as e:
-        logger.error(f"Error processing followUpEntries data: {str(e)}")
+        logger.error(f"Error processing followUpsComments data: {str(e)}")
     
-    logger.info(f"Total followUpEntries fetched: {len(all_followUpEntries)}")
-    return all_followUpEntries
+    logger.info(f"Total followUpsComments fetched: {len(all_followUpsComments)}")
+    return all_followUpsComments
 
-def process_followUpEntries_data(followUpEntries, start_date, end_date):
-    """Helper function to process and transform followUpEntries data consistently"""
-    transformed_followUpEntries = []
-    for followUpEntrie in followUpEntries:
-        transformed_followUpEntrie = {
-            'name': followUpEntrie.get('name', ''),
-            'customer_ids': followUpEntrie.get('customerIds', []),
-            'follow_ups_count': followUpEntrie.get('followUpsCount', 0),
+def process_followUpsComments_data(followUpsComments, start_date, end_date):
+    """Helper function to process and transform followUpsComments data consistently"""
+    transformed_followUpsComments = []
+    for followUpComment in followUpsComments:
+        transformed_followUpComment = {
+            'name': followUpComment.get('name', ''),
+            'comments_count': followUpComment.get('commentsCount', 0),
+            'comments_customer_ids': followUpComment.get('commentsCustomerIds', []),
             # Add report metadata for database storage
             'report_start_date': start_date,
             'report_end_date': end_date,
             'created_at': datetime.now().isoformat()
         }
-        transformed_followUpEntries.append(transformed_followUpEntrie)
+        transformed_followUpsComments.append(transformed_followUpComment)
     
-    return transformed_followUpEntries
+    return transformed_followUpsComments
 
-async def fetch_and_process_followUpEntriesReportTest(start_date: str, end_date: str) -> List[Dict]:
+async def fetch_and_process_followUpsCommentsReportTest(start_date: str, end_date: str) -> List[Dict]:
     """
     Creates a session and fetches follow-up entries report data.
     
@@ -143,6 +143,6 @@ async def fetch_and_process_followUpEntriesReportTest(start_date: str, end_date:
     import aiohttp
     
     async with aiohttp.ClientSession() as session:
-        followUpEntries = await fetch_followUpEntriesReportTest(session, start_date, end_date)
+        followUpsComments = await fetch_followUpsCommentsReportTest(session, start_date, end_date)
     
-    return followUpEntries
+    return followUpsComments
