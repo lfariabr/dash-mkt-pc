@@ -11,6 +11,7 @@ from components.date_input import date_input
 from views.appointments.appointment_types import procedimento_avaliacao, agendamento_status_por_atendente
 from views.coc.atendentes import atendentes_puxadas_manha, atendentes_puxadas_tarde
 from views.coc.columns import leadsByUserColumns, leadsByUser_display_columns
+from views.coc.atendentes import get_atendente_from_spreadsheet
 
 async def fetch_leads_and_appointments(start_date, end_date):
     """
@@ -69,6 +70,8 @@ def load_page_leadsByUser():
                 df_leadsByUser['agendamentos_por_lead'] = df_leadsByUser['messages_count_by_status'].apply(extract_agendamentos)
                                 
                 # Add location and shift info
+                atendentes_puxadas_manha_test, atendentes_puxadas_tarde_test = get_atendente_from_spreadsheet()
+
                 df_leadsByUser = enrich_leadsByUser_df(df_leadsByUser, atendentes_puxadas_manha, atendentes_puxadas_tarde)
                 
                 # Rename columns
@@ -214,3 +217,12 @@ def load_page_leadsByUser():
                 # df_appointments_atendentes_ingrid_valid = df_appointments_atendentes_ingrid[df_appointments_atendentes_ingrid['data_primeira_atendente_is_start_date?'] == True]
                 # st.subheader(f"Debugging appointments from 'Ingrid Caroline Santos Andrade': {len(df_appointments_atendentes_ingrid_valid)}")
                 # st.dataframe(df_appointments_atendentes_ingrid_valid, hide_index=True)
+
+                # Debugging appointments of Atendente "Ingrid Caroline Santos Andrade"
+                st.dataframe(atendentes_puxadas_manha_test)
+                st.dataframe(atendentes_puxadas_tarde_test)
+                st.dataframe(atendentes_puxadas_manha)
+                st.dataframe(atendentes_puxadas_tarde)
+
+
+                

@@ -58,7 +58,7 @@ async def fetch_leadsByUserReport(session, start_date: str, end_date: str) -> Li
         'start': start_date,
         'end': end_date,
         'currentPage': 1,
-        'perPage': 400
+        'perPage': 200
     }
     batch_size = 10  # Limiting concurrent requests to avoid rate limiting
 
@@ -71,7 +71,7 @@ async def fetch_leadsByUserReport(session, start_date: str, end_date: str) -> Li
     leads_by_user = data.get('data', {}).get('leadsByUserReport', {})
     meta = leads_by_user.get('meta', {})
     total = meta.get('total', 0)
-    per_page = meta.get('perPage', 400)
+    per_page = meta.get('perPage', 200)
     last_page = meta.get('lastPage', 1)
     logger.info(f"API meta: total={total}, perPage={per_page}, lastPage={last_page}")
 
