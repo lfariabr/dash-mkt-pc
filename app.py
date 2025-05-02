@@ -20,7 +20,7 @@ from views.st_coc.appointmentByUser_view import load_page_appointmentsByUser
 from views.st_coc.appointments_view_CreatedAt import load_page_appointments_CreatedAt
 
 # Test
-# from views.testgoogle import load_page_testgoogle
+from views.test import load_page_test
 
 st.set_page_config(
     page_title="Pró-Corpo BI",
@@ -29,6 +29,13 @@ st.set_page_config(
 )
 
 def main():
+    """
+    Main function for the application.
+    
+    This function defines the menu structure of the application and uses Streamlit's 
+    sidebar to let the user select a category and a page. It then calls the function 
+    associated with the selected page.
+    """
     # Define the menu structure
     menu_structure = {
         "COC": {
@@ -36,6 +43,7 @@ def main():
             "2 - Tarefas Pós-Vendas": load_page_followUpReport_and_followUpCommentsReport,
             # "3 - Agd Diário": load_page_appointments_CreatedAt,
             # "4 - Agd por Usuário": load_page_appointmentsByUser,
+            "5 - Teste": load_page_test,
         },
         "Dash": {
             "1 - Leads": load_page_leads,
@@ -47,7 +55,6 @@ def main():
             "2 - Histórico": load_page_mkt_leads,
         },
         "Admin": {
-            # "Teste": load_page_testgoogle,
             "1 - Consultoras": load_page_adminConsultoras,
             "2 - Atendentes": load_page_adminAtendentes,
             "3 - Lojas": load_page_adminLojas,
