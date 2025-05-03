@@ -54,7 +54,7 @@ async def fetch_leadsByUserReportTest(session, start_date: str, end_date: str) -
         'start': start_date,
         'end': end_date,
         'currentPage': 1,
-        'perPage': 200
+        'perPage': 20
     }
     
     data = await fetch_graphql(session, api_url, query, variables)
@@ -113,7 +113,9 @@ async def fetch_leadsByUserReportTest(session, start_date: str, end_date: str) -
     return all_leads
 
 def process_leads_data(leads, start_date, end_date):
-    """Helper function to process and transform leads data consistently"""
+    """
+    Helper function to process and transform leads data consistently
+    """
     transformed_leads = []
     for lead in leads:
         transformed_lead = {
@@ -122,23 +124,25 @@ def process_leads_data(leads, start_date, end_date):
             'messages_count': lead.get('messagesCount', 0),
             'unique_messages_count': lead.get('uniqueMessagesCount', 0),
             'success_rate': lead.get('successRate', 0),
-            'messages_count_by_status': {}
+            'messages_count_by_status': {},
+            'created_at': datetime.now().isoformat(),
+            'report_start_date': start_date,
+            'report_end_date': end_date
         }
         
-        # Process messagesCountByStatus
-        if 'messagesCountByStatus' in lead and lead['messagesCountByStatus']:
-            for status in lead['messagesCountByStatus']:
-                code = status.get('code')
-                label = status.get('label')
-                # Convert label to integer (it comes as string from API)
-                count = int(label) if label and str(label).isdigit() else 0
-                transformed_lead['messages_count_by_status'][code] = count
+        # # Process messagesCountByStatus
+        # if 'messagesCountByStatus' in lead and lead['messagesCountByStatus']:
+        #     for status in lead['messagesCountByStatus']:
+        #         code = status.get('code')
+        #         label = status.get('label')
+        #         # Convert label to integer (it comes as string from API)
+        #         count = int(label) if label and str(label).isdigit() else 0
+        #         transformed_lead['messages_count_by_status'][code] = count
         
-        # Add timestamps for database records
-        from datetime import datetime
-        transformed_lead['created_at'] = datetime.now().isoformat()
-        transformed_lead['report_start_date'] = start_date
-        transformed_lead['report_end_date'] = end_date
+        # # Add timestamps for database records
+        # transformed_lead['created_at'] = datetime.now().isoformat()
+        # transformed_lead['report_start_date'] = start_date
+        # transformed_lead['report_end_date'] = end_date
         
         transformed_leads.append(transformed_lead)
     
