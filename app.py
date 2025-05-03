@@ -20,7 +20,7 @@ from views.st_coc.appointmentByUser_view import load_page_appointmentsByUser
 from views.st_coc.appointments_view_CreatedAt import load_page_appointments_CreatedAt
 
 # Test
-from views.test import load_page_test
+from views.testFup import load_page_test
 
 st.set_page_config(
     page_title="Pró-Corpo BI",
@@ -43,7 +43,7 @@ def main():
             "2 - Tarefas Pós-Vendas": load_page_followUpReport_and_followUpCommentsReport,
             # "3 - Agd Diário": load_page_appointments_CreatedAt,
             # "4 - Agd por Usuário": load_page_appointmentsByUser,
-            "5 - Teste": load_page_test,
+            "5 - Teste FollowUps": load_page_test,
         },
         "Dash": {
             "1 - Leads": load_page_leads,

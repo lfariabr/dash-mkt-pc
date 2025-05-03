@@ -3,6 +3,7 @@ import pandas as pd
 import asyncio
 from apiCrm.resolvers.fetch_followUpEntriesReportTest import fetch_and_process_followUpEntriesReportTest
 from apiCrm.resolvers.fetch_followUpsCommentsReportTest import fetch_and_process_followUpsCommentsReportTest
+from apiCrm.resolvers.fetch_leadsByUserReportTest import fetch_and_process_leadsByUserReportTest
 from components.date_input import date_input
 
 async def fetch_followUpEntriesAndComments(start_date, end_date):
@@ -34,6 +35,7 @@ def load_data(start_date=None, end_date=None, use_api=True):
             # Run the async function using asyncio
             entries_data, comments_data = asyncio.run(fetch_followUpEntriesAndComments(start_date, end_date))
 
+            # if not entries_data or not comments_data or not leads_data:
             if not entries_data or not comments_data:
                 st.error("Não foi possível obter dados da API.")
                 return pd.DataFrame()
@@ -43,6 +45,7 @@ def load_data(start_date=None, end_date=None, use_api=True):
             
             st.success(f"Dados obtidos com sucesso via API: {len(df_entries)} registros carregados.")
             return df_entries, df_comments
+
             
         except Exception as e:
             st.error(f"Erro ao buscar dados da API: {str(e)}")
@@ -58,7 +61,7 @@ def load_page_test():
     Returns:
         df_lojas: DataFrame containing lojas data
     """
-    st.title("💎 Test")
+    st.title("💎 Test FollowUps")
     st.markdown("---")
 
     start_date, end_date = date_input()
