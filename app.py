@@ -20,7 +20,6 @@ from views.st_coc.appointmentByUser_view import load_page_appointmentsByUser
 from views.st_coc.appointments_view_CreatedAt import load_page_appointments_CreatedAt
 
 # Test
-from views.testFup import load_page_test
 from views.testLeadsbU import load_page_testLeadsbU
 
 st.set_page_config(
@@ -44,7 +43,6 @@ def main():
             "2 - Tarefas Pós-Vendas": load_page_followUpReport_and_followUpCommentsReport,
             # "3 - Agd Diário": load_page_appointments_CreatedAt,
             # "4 - Agd por Usuário": load_page_appointmentsByUser,
-            "Teste FollowUps": load_page_test,
             "Teste Leads by User": load_page_testLeadsbU,
         },
         "Dash": {
