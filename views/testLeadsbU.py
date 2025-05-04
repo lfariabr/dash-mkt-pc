@@ -5,24 +5,13 @@ import asyncio
 from apiCrm.resolvers.fetch_leadsByUserReportTest import fetch_and_process_leadsByUserReportTest
 from components.date_input import date_input
 
-async def fetch_leadsByUser(start_date, end_date):
-    """
-    Run both API calls concurrently to improve performance.
-    """
-    leads_data = fetch_and_process_leadsByUserReportTest(start_date, end_date)
-
-    # Executing both fetches
-    leads_data = await asyncio.gather(leads_data)
-    return leads_data
-
-def load_data(start_date=None, end_date=None, use_api=True):
+def load_data(start_date=None, end_date=None):
     """
     Load and preprocess appointments by user data.
     
     Args:
         start_date (str, optional): Start date in YYYY-MM-DD format for API fetch
         end_date (str, optional): End date in YYYY-MM-DD format for API fetch
-        use_api (bool): Whether to use the API (default) or fallback mechanism
         
     Returns:
         DataFrame: Processed appointments by user dataframe
@@ -31,7 +20,7 @@ def load_data(start_date=None, end_date=None, use_api=True):
     if start_date and end_date:
         try:
             # Run the async function using asyncio
-            leads_data = asyncio.run(fetch_leadsByUser(start_date, end_date))
+            leads_data = asyncio.run(fetch_and_process_leadsByUserReportTest(start_date, end_date))
 
             # if not entries_data or not comments_data or not leads_data:
             if not leads_data:

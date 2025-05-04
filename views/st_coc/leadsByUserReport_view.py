@@ -108,9 +108,13 @@ def load_page_leadsByUser():
                 df_appointments_agendamentos = df_appointments[
                                             (df_appointments['Status'].isin(agendamento_status_por_atendente)) 
                                             & (df_appointments['Procedimento'].isin(procedimento_avaliacao))]
-                df_appointments_agendamentos['Data primeira atendente'] = pd.to_datetime(df_appointments_agendamentos['Data primeira atendente']).dt.date
+                df_appointments_agendamentos['Data primeira atendente'] = pd.to_datetime(
+                    df_appointments_agendamentos['Data primeira atendente'],
+                    dayfirst=True,  # For day/month/year format
+                    errors='coerce'  # Convert parsing errors to NaT
+                ).dt.date
                 
-                start_date = pd.to_datetime(start_date).date()
+                start_date = pd.to_datetime(start_date, dayfirst=True).date()
                 df_appointments_agendamentos['data_primeira_atendente_is_start_date?'] = df_appointments_agendamentos['Data primeira atendente'] == start_date
                 
                 # filtered = agendamentos that match start_date - rule #3

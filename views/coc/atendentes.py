@@ -47,7 +47,6 @@ atendentes_puxadas_tarde = {
     'Alany Melo de Souza' : 'Santos'
 }
 
-
 def get_atendente_from_spreadsheet():
     """
     Get atendentes data from Google Sheets and return DataFrames for morning and afternoon shifts.

@@ -44,8 +44,8 @@ def main():
             "2 - Tarefas Pós-Vendas": load_page_followUpReport_and_followUpCommentsReport,
             # "3 - Agd Diário": load_page_appointments_CreatedAt,
             # "4 - Agd por Usuário": load_page_appointmentsByUser,
-            "5 - Teste FollowUps": load_page_test,
-            "6 - Teste Leads by User": load_page_testLeadsbU,
+            "Teste FollowUps": load_page_test,
+            "Teste Leads by User": load_page_testLeadsbU,
         },
         "Dash": {
             "1 - Leads": load_page_leads,

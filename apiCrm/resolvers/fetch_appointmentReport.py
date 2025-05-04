@@ -233,7 +233,6 @@ async def fetch_appointmentReport(session, start_date: str, end_date: str) -> Li
                     comments_data = appointment.get('comments', []) or []
                     comments = '; '.join([c.get('comment', '') for c in comments_data if c and isinstance(c, dict)]) if comments_data else ''
                     
-                    # TODO: Implementation of fallback logic for Samir's requirements:
                     # R -> oldestParent.createdAt (quando disponível) ou updatedAt (caso contrário)
                     # S -> oldestParent.createdBy.name (quando disponível) ou updatedBy.name (caso contrário)
                     # T -> oldestParent.createdBy.group.name (quando disponível) ou updatedBy.group.name (caso contrário)
@@ -558,7 +557,6 @@ async def fetch_appointmentReportCreatedAt(session, start_date: str, end_date: s
                     comments_data = appointment.get('comments', []) or []
                     comments = '; '.join([c.get('comment', '') for c in comments_data if c and isinstance(c, dict)]) if comments_data else ''
                     
-                    # TODO: Implementation of fallback logic for Samir's requirements:
                     # R -> oldestParent.createdAt (quando disponível) ou updatedAt (caso contrário)
                     # S -> oldestParent.createdBy.name (quando disponível) ou updatedBy.name (caso contrário)
                     # T -> oldestParent.createdBy.group.name (quando disponível) ou updatedBy.group.name (caso contrário)

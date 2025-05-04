@@ -274,7 +274,6 @@ def save_data_to_db_batch(df_leads_with_purchases):
                      # Check if lead exists
                     if lead_id in existing_leads:
                         # Update existing lead
-                        # TODO: rethink about this Updating lead thing...
                         existing_lead = existing_leads[lead_id]
                         logging.info(f"Updating existing lead with ID: {lead_id}")
                         

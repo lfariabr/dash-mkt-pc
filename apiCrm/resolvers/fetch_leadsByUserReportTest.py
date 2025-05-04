@@ -125,24 +125,21 @@ def process_leads_data(leads, start_date, end_date):
             'unique_messages_count': lead.get('uniqueMessagesCount', 0),
             'success_rate': lead.get('successRate', 0),
             'messages_count_by_status': {},
-            'created_at': datetime.now().isoformat(),
-            'report_start_date': start_date,
-            'report_end_date': end_date
         }
         
-        # # Process messagesCountByStatus
-        # if 'messagesCountByStatus' in lead and lead['messagesCountByStatus']:
-        #     for status in lead['messagesCountByStatus']:
-        #         code = status.get('code')
-        #         label = status.get('label')
-        #         # Convert label to integer (it comes as string from API)
-        #         count = int(label) if label and str(label).isdigit() else 0
-        #         transformed_lead['messages_count_by_status'][code] = count
+        # Process messagesCountByStatus
+        if 'messagesCountByStatus' in lead and lead['messagesCountByStatus']:
+            for status in lead['messagesCountByStatus']:
+                code = status.get('code')
+                label = status.get('label')
+                # Convert label to integer (it comes as string from API)
+                count = int(label) if label and str(label).isdigit() else 0
+                transformed_lead['messages_count_by_status'][code] = count
         
-        # # Add timestamps for database records
-        # transformed_lead['created_at'] = datetime.now().isoformat()
-        # transformed_lead['report_start_date'] = start_date
-        # transformed_lead['report_end_date'] = end_date
+        # Add timestamps for database records
+        transformed_lead['created_at'] = datetime.now().isoformat()
+        transformed_lead['report_start_date'] = start_date
+        transformed_lead['report_end_date'] = end_date
         
         transformed_leads.append(transformed_lead)
     

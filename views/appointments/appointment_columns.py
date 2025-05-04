@@ -57,7 +57,7 @@ appointments_api_clean_columns = [
     'Procedimento',
     'Prestador',
     # 'Grupo da primeira atendente',
-    'Observação (mais recente)', # TODO pending from this on...
+    'Observação (mais recente)',
     'Data de atualização',
     # 'Atualizado por',
     # 'Último comentário',

@@ -295,7 +295,6 @@ def load_page_marketing():
                 df_leads_with_purchases['ID lead'] = pd.to_numeric(df_leads_with_purchases['ID lead'], errors='coerce')
                 df_leads_with_purchases['Valor primeiro orçamento'] = pd.to_numeric(df_leads_with_purchases['Valor primeiro orçamento'], errors='coerce')
 
-                #TODO create new columns. Waiting for Lili's database
                 # Problem of duplicate leads... Valor primeiro orçamento will also be duplicate... need to think about this.
 
                 st.session_state['leads_data'] = df_leads_with_purchases

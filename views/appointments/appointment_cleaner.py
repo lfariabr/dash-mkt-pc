@@ -84,7 +84,7 @@ def appointment_crm_columns_reorganizer(df_appointments_clean):
     'Grupo do procedimento',
     'Prestador',
     'Grupo da primeira atendente',
-    'Observação (mais recente)', # TODO pending from this on...
+    'Observação (mais recente)',
     'Data de atualização',
     'Atualizado por',
     'Último comentário',
