@@ -104,18 +104,19 @@ def load_page_leadsByUser():
                 # COC rules:
                 # 1) Status = agendamento_status_por_atendente
                 # 2) Procedimento = procedimento_avaliacao
-                # 3) Data primeira atendente = start_date
                 df_appointments_agendamentos = df_appointments[
                                             (df_appointments['Status'].isin(agendamento_status_por_atendente)) 
                                             & (df_appointments['Procedimento'].isin(procedimento_avaliacao))]
+                
+                # 3) Data primeira atendente = start_date
                 df_appointments_agendamentos['Data primeira atendente'] = pd.to_datetime(
                     df_appointments_agendamentos['Data primeira atendente'],
-                    dayfirst=True,  # For day/month/year format
-                    errors='coerce'  # Convert parsing errors to NaT
-                ).dt.date
+                    dayfirst=True,
+                    errors='coerce'
+                )
                 
-                start_date = pd.to_datetime(start_date, dayfirst=True).date()
-                df_appointments_agendamentos['data_primeira_atendente_is_start_date?'] = df_appointments_agendamentos['Data primeira atendente'] == start_date
+                start_date = pd.to_datetime(start_date).date()
+                df_appointments_agendamentos['data_primeira_atendente_is_start_date?'] = df_appointments_agendamentos['Data primeira atendente'].dt.date == start_date
                 
                 # filtered = agendamentos that match start_date - rule #3
                 df_appointments_agendamentos_filtered_coc_rules = df_appointments_agendamentos[df_appointments_agendamentos['data_primeira_atendente_is_start_date?'] == True]
