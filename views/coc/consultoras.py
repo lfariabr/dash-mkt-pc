@@ -1,3 +1,8 @@
+import streamlit as st
+import pandas as pd
+from google.oauth2.service_account import Credentials
+from helpers.gsheet import get_gspread_client, get_ss_url
+
 consultoras_manha = {
     'Beatriz Emanoela da Silva' : 'Tatuapé',
     'Alessandra Araújo de Oliveira' : 'Tatuapé',
@@ -40,3 +45,49 @@ consultoras_tarde = {
     'Lara Goncalo Aparicio' : 'Jardins',
     'Ingrid Porciuncula Ferreira da Silva' : 'Jardins'
 }
+
+def get_consultora_from_spreadsheet():
+    """
+    Get atendentes data from Google Sheets and return DataFrames for morning and afternoon shifts.
+    
+    Returns:
+        tuple: (df_consultoras_manha, df_consultoras_tarde)
+    
+    Raises:
+        Exception: If there's an error accessing the spreadsheet
+    """
+    try:
+        spreadsheet_url = get_ss_url()
+        client = get_gspread_client()
+
+        # Atendentes
+        sheet_name = client.open_by_url(spreadsheet_url)
+        consultoras = sheet_name.worksheet("consultoras")
+        dados_consultoras = consultoras.get_all_values()
+        
+        if len(dados_consultoras) <= 1:  # Only header or empty
+            st.warning("Planilha de consultoras vazia ou sem dados")
+            return pd.DataFrame(), pd.DataFrame()
+            
+        df_consultoras = pd.DataFrame(dados_consultoras[1:], columns=dados_consultoras[0])
+        
+        # Ensure required columns exist
+        required_columns = ['Consultora', 'Unidade', 'Turno', 'Tam']
+        if not all(col in df_consultoras.columns for col in required_columns):
+            st.error(f"Planilha de consultoras deve conter as colunas: {', '.join(required_columns)}")
+            return pd.DataFrame(), pd.DataFrame()
+        
+        # Filter by shift
+        df_consultoras_manha = df_consultoras[df_consultoras['Turno'].str.strip().str.lower() == 'manhã'].copy()
+        df_consultoras_tarde = df_consultoras[df_consultoras['Turno'].str.strip().str.lower() == 'tarde'].copy()
+        
+        # Clean up data
+        for df in [df_consultoras_manha, df_consultoras_tarde]:
+            df['Consultora'] = df['Consultora'].str.strip()
+            df['Unidade'] = df['Unidade'].str.strip()
+        
+        return df_consultoras_manha, df_consultoras_tarde
+        
+    except Exception as e:
+        st.error(f"Erro ao carregar dados das consultoras: {str(e)}")
+        return pd.DataFrame(), pd.DataFrame()

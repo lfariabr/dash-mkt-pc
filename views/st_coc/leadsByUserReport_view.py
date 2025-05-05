@@ -224,8 +224,10 @@ def load_page_leadsByUser():
                 # st.dataframe(df_appointments_atendentes_ingrid_valid, hide_index=True)
 
                 # Debugging appointments of Atendente "Ingrid Caroline Santos Andrade"
+                st.subheader("Atendentes - Spreadsheet")
                 st.dataframe(atendentes_puxadas_manha_test)
                 st.dataframe(atendentes_puxadas_tarde_test)
+                st.subheader("Atendentes - Hardcoded")
                 st.dataframe(atendentes_puxadas_manha)
                 st.dataframe(atendentes_puxadas_tarde)
 
