@@ -6,7 +6,6 @@ from components.date_input import date_input
 from apiCrm.resolvers.fetch_followUpEntriesReport import fetch_and_process_followUpEntriesReport
 from apiCrm.resolvers.fetch_followUpsCommentsReport import fetch_and_process_followUpsCommentsReport
 from apiCrm.resolvers.fetch_grossSalesReport import fetch_and_process_grossSales_report
-# from views.coc.consultoras import consultoras_manha, consultoras_tarde
 from views.coc.columns import (
     followUpEntries_display_columns,
     followUpEntries_display_columns_initial_columns,
@@ -16,6 +15,8 @@ from views.coc.columns import (
 )
 from helpers.data_wrestler import highlight_total_row, append_totals_row, enrich_consultora_df
 from views.coc.consultoras import get_consultora_from_spreadsheet
+from helpers.coc_worker import normalize_name, apply_formatting_followUpReport
+
 
 
 async def fetch_all_data(start_date, end_date):
@@ -77,20 +78,13 @@ def load_page_followUpReport_and_followUpCommentsReport():
                 'customer_ids': 'ID dos Clientes'
             })
 
-            # # Add location and shift info:
-            # df_entries = enrich_consultora_df(df_entries, consultoras_manha, 'Manhã')
-            # df_entries = enrich_consultora_df(df_entries, consultoras_tarde, 'Tarde')
-            
-            # df_entries['Tam'] = 'P'  # Default team
-            
-            df_entries = df_entries.rename(columns={
-                'name': 'Consultora de Vendas',
-                'follow_ups_count': 'Novos Pós-Vendas',
-                'customer_ids': 'ID dos Clientes'
-            })
-
             # Add location and shift info
             consultoras_manha,consultoras_tarde = get_consultora_from_spreadsheet()
+            consultoras_manha['Consultora'] = consultoras_manha['Consultora'].apply(normalize_name)
+            consultoras_tarde['Consultora'] = consultoras_tarde['Consultora'].apply(normalize_name)
+            df_entries['Consultora de Vendas'] = df_entries['Consultora de Vendas'].apply(normalize_name)
+            df_comments['name'] = df_comments['name'].apply(normalize_name)
+            df_gross_sales['createdBy'] = df_gross_sales['createdBy'].apply(normalize_name)
 
             # Step 1: Filter entries where 'Consultora de Vendas' matches the 'Consultora' in consultoras_manha && consultoras_tarde
             df_entries_consultoras_manha = df_entries[df_entries['Consultora de Vendas'].isin(consultoras_manha['Consultora'])]
@@ -155,10 +149,9 @@ def load_page_followUpReport_and_followUpCommentsReport():
             # Relatório de Venda Mensal Bruta
             ################## START #####################
             if df_gross_sales.empty or 'chargableTotal' not in df_gross_sales.columns:
-                # Handle gracefully (log, show warning, or skip further processing)
                 print("Warning: No gross sales data or 'chargableTotal' column missing.")
-                # Optionally, create the column with default value if needed
-                df_gross_sales['chargableTotal'] = 0    
+                df_gross_sales['chargableTotal'] = 0
+
             else:
                 df_gross_sales['chargableTotal'] = pd.to_numeric(df_gross_sales['chargableTotal'], errors='coerce').fillna(0)
                 df_gross_sales['chargableTotal'] = df_gross_sales['chargableTotal'] / 100
@@ -198,7 +191,6 @@ def load_page_followUpReport_and_followUpCommentsReport():
             merged_followUpsAndSales_manha = merged_followUpsAndSales_manha.rename(columns={'Unidade_x': 'Unidade', 'Tam_x': 'Tam', 'Turno_x': 'Turno'})
             merged_followUpsAndSales_manha = merged_followUpsAndSales_manha.sort_values(by='Comentários de Pós-Vendas', ascending=False)
             merged_followUpsAndSales_manha = merged_followUpsAndSales_manha.drop_duplicates(subset='Consultora de Vendas', keep='first')
-            # FillNA 0
             merged_followUpsAndSales_manha.fillna(0, inplace=True)
             # Tarde
             merged_followUps_tarde = pd.merge(
@@ -216,7 +208,6 @@ def load_page_followUpReport_and_followUpCommentsReport():
             merged_followUpsAndSales_tarde = merged_followUpsAndSales_tarde.rename(columns={'Unidade_x': 'Unidade', 'Tam_x': 'Tam', 'Turno_x': 'Turno'})
             merged_followUpsAndSales_tarde = merged_followUpsAndSales_tarde.sort_values(by='Comentários de Pós-Vendas', ascending=False)
             merged_followUpsAndSales_tarde = merged_followUpsAndSales_tarde.drop_duplicates(subset='Consultora de Vendas', keep='first')
-            # FillNA 0
             merged_followUpsAndSales_tarde.fillna(0, inplace=True)
             
             # Fechamento
@@ -225,7 +216,6 @@ def load_page_followUpReport_and_followUpCommentsReport():
                     ignore_index=True
                 )
             df_merged_followUpsAndSales_all.sort_values(by='Comentários de Pós-Vendas', ascending=False, inplace=True)
-            # FillNA 0
             df_merged_followUpsAndSales_all.fillna(0, inplace=True)
             ################## END #####################
 

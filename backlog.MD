@@ -10,7 +10,8 @@
 - [x] Puxadas de Lead por Atendente
 - [x] Pós-Vendas e Novos
 - [x] Agendamento por atendente
-- [ ] Remover hardcoded Consultoras
+- [x] Remover hardcoded Consultoras
+- [ ] Remover hardcoded Atendentes
 - [ ] Criar visualização por lojas
 - [ ] Pensar média mensal, como calcular
 

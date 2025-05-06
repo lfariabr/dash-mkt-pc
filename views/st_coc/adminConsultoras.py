@@ -65,8 +65,8 @@ def load_page_adminConsultoras():
                     consultora = st.text_input("Consultora")
                     unidade = st.text_input("Unidade")
                 with col2:
-                    turno = st.text_input("Turno")
-                    tam = st.text_input("Tam")
+                    turno = st.selectbox("Turno", ["Manhã", "Tarde"])
+                    tam = st.selectbox("Tam", ["P", "M", "G"])
                 submit = st.form_submit_button("Adicionar")
 
                 if submit:
