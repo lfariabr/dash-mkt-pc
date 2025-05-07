@@ -1,23 +1,23 @@
 import streamlit as st
 
 # Marketing
-from views.st_mkt.marketing_view import load_page_marketing
-from views.st_mkt.mkt_leads_view import load_page_mkt_leads
+from frontend.st_mkt.marketing_view import load_page_marketing
+from frontend.st_mkt.mkt_leads_view import load_page_mkt_leads
 
 # Dashboard
-from views.st_dash.lead_view import load_page_leads
-from views.st_dash.appointments_view import load_page_appointments
-from views.st_dash.sales_view import load_page_sales
+from frontend.st_dash.lead_view import load_page_leads
+from frontend.st_dash.appointments_view import load_page_appointments
+from frontend.st_dash.sales_view import load_page_sales
 
 # COC
-from views.st_coc.leadsByUserReport_view import load_page_leadsByUser
-from views.st_coc.followUpReport_view import load_page_followUpReport_and_followUpCommentsReport
-from views.st_coc.adminConsultoras import load_page_adminConsultoras
-from views.st_coc.adminAtendentes import load_page_adminAtendentes
-from views.st_coc.adminLojas import load_page_adminLojas
+from frontend.st_coc.leadsByUserReport_view import load_page_leadsByUser
+from frontend.st_coc.followUpReport_view import load_page_followUpReport_and_followUpCommentsReport
+from frontend.st_coc.adminConsultoras import load_page_adminConsultoras
+from frontend.st_coc.adminAtendentes import load_page_adminAtendentes
+from frontend.st_coc.adminLojas import load_page_adminLojas
 
-from views.st_coc.appointmentByUser_view import load_page_appointmentsByUser
-from views.st_coc.appointments_view_CreatedAt import load_page_appointments_CreatedAt
+from frontend.st_coc.appointmentByUser_view import load_page_appointmentsByUser
+from frontend.st_coc.appointments_view_CreatedAt import load_page_appointments_CreatedAt
 
 st.set_page_config(
     page_title="Pró-Corpo BI",
@@ -48,7 +48,7 @@ def main():
         },
         "Marketing": {
             "1 - Funil": load_page_marketing,
-            "2 - Histórico": load_page_mkt_leads,
+            # "2 - Histórico": load_page_mkt_leads,
         },
         "Admin": {
             "1 - Consultoras": load_page_adminConsultoras,

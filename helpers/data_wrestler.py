@@ -11,7 +11,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from backend.database import SessionLocal, engine
 from backend.models.mkt_lead import MktLead
 from sqlalchemy.orm import Session
-from views.coc.columns import agendamento_por_lead_column
+from frontend.coc.columns import agendamento_por_lead_column
 
 
 def safe_date(date_value):

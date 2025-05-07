@@ -1,8 +1,8 @@
+import os
 import json
 import aiohttp
 import asyncio
 import logging
-import os
 from pathlib import Path
 from dotenv import load_dotenv
 
