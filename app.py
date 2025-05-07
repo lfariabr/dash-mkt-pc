@@ -38,8 +38,8 @@ def main():
     menu_structure = {
         "COC": {
             "1 - Puxada de Leads": load_page_leadsByUser,
-            "2 - Tarefas Pós-Vendas": load_page_followUpReport_and_followUpCommentsReport,
-            "3 - Leads por Loja": load_page_leadsByStore,
+            "2 - Puxadas por Loja": load_page_leadsByStore,
+            "3 - Tarefas Pós-Vendas": load_page_followUpReport_and_followUpCommentsReport,
             # "3 - Agd Diário": load_page_appointments_CreatedAt,
             # "4 - Agd por Usuário": load_page_appointmentsByUser,
         },
@@ -50,7 +50,7 @@ def main():
         },
         "Marketing": {
             "1 - Funil": load_page_marketing,
-            # "2 - Histórico": load_page_mkt_leads,
+            # "2 - Histórico": load_page_mkt_leads, # deprecated
         },
         "Admin": {
             "1 - Consultoras": load_page_adminConsultoras,

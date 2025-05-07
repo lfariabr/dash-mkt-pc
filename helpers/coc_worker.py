@@ -1,6 +1,6 @@
 import unicodedata
 import pandas as pd
-from .data_wrestler import highlight_total_row_leadsByUser, highlight_total_row
+from .data_wrestler import highlight_total_row_leadsByUser, highlight_total_row_leadsByStore, highlight_total_row
 import streamlit as st
 
 def normalize_name(name: str) -> str:
@@ -35,3 +35,10 @@ def apply_formatting_followUpReport(df):
     existing_formats = {col: fmt for col, fmt in all_formats.items() if col in df.columns}
     
     return df.style.apply(highlight_total_row, axis=1).format(existing_formats)
+
+def apply_formatting_leadsByStore(df):
+    return df.style.apply(highlight_total_row_leadsByStore, axis=1).format({
+                        'Leads Puxados': '{:.0f}',
+                        'Agendamentos por lead': '{:.0f}',
+                        'Agendamentos na Agenda': '{:.0f}'
+                    })

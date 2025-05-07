@@ -478,6 +478,14 @@ def highlight_total_row_leadsByUser(s):
     else:
         return [''] * len(s)
 
+def highlight_total_row_leadsByStore(s):
+    if s['Unidade'] == 'Total':
+        return [
+            'background-color: #5B2C6F; color: white; font-weight: bold'
+        ] * len(s)
+    else:
+        return [''] * len(s)
+
 def enrich_consultora_df(df, consultoras_dict, turno_label):
     for consultora, local in consultoras_dict.items():
         mask = df['Consultora de Vendas'] == consultora
@@ -505,6 +513,24 @@ def append_totals_row(df, label_col='Consultora de Vendas'):
     for col in ['Unidade', 'Turno', 'Tam']:
         if col in df.columns:
             totals_row[col] = ''
+
+    return pd.concat([df, totals_row.to_frame().T], ignore_index=True)
+
+def append_total_rows_leadsByStore(df, label_col='Unidade'):
+    totals_row = df.sum(numeric_only=True)
+
+    int_cols = ['Leads Puxados', 'Agendamentos por lead', 'Agendamentos na Agenda']
+
+    for col in int_cols:
+        if col in df.columns and col in totals_row.index:
+            totals_row[col] = int(round(totals_row[col]))
+
+    # Set manual columns that should be empty
+    for col in ['Atendente', 'Turno', 'Tam']:
+        if col in df.columns:
+            totals_row[col] = ''
+
+    totals_row[label_col] = 'Total'
 
     return pd.concat([df, totals_row.to_frame().T], ignore_index=True)
 

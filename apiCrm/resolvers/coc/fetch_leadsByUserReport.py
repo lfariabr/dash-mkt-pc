@@ -54,7 +54,7 @@ async def fetch_leadsByUserReport(session, start_date: str, end_date: str) -> Li
         'start': start_date,
         'end': end_date,
         'currentPage': 1,
-        'perPage': 20
+        'perPage': 25
     }
     
     data = await fetch_graphql(session, api_url, query, variables)
