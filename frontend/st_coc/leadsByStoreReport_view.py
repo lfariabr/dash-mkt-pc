@@ -19,11 +19,16 @@ async def fetch_leads_and_appointments(start_date, end_date):
     """
     Run both API calls concurrently to improve performance.
     """
+    
     leads_data = fetch_and_process_leadsByUserReport(start_date, end_date)
     appointments_data = fetch_and_process_appointment_report_created_at(start_date, end_date)
 
+    start_date_custom = ""
+    end_date_custom = ""
+    leads_data_complete_month = fetch_and_process_leadsByUserReport(start_date_custom, end_date_custom)
+    
     # Executing both fetches
-    leads_data, appointments_data = await asyncio.gather(leads_data, appointments_data)
+    leads_data, appointments_data = await asyncio.gather(leads_data, appointments_data) # TODO: leads_data_complete_month
     return leads_data, appointments_data
 
 
@@ -42,7 +47,7 @@ def load_data(start_date=None, end_date=None):
 def load_page_leadsByStore():
     """Main function to display leads by user data."""
 
-    st.title("📊 3 - Puxada de Leads por Loja")
+    st.title("📊 2 - Puxada de Leads por Loja")
     st.markdown("---")
     st.subheader("Selecione o intervalo de datas para o relatório:")
     
@@ -53,6 +58,8 @@ def load_page_leadsByStore():
         send_discord_message(f"Loading data in page leadsByStoreReport_view")
         with st.spinner("Carregando dados..."):
             df_leadsByUser, df_appointments = load_data(start_date, end_date)
+
+            # df_leadsByUser_complete_month = load_data(start_date_custom, end_date_custom)
             
             if df_leadsByUser.empty or df_appointments.empty:
                 st.warning("Não foram encontrados dados para o período selecionado.")
@@ -61,7 +68,7 @@ def load_page_leadsByStore():
                 df_leadsByUser = df_leadsByUser[leadsByUserColumns]
                 df_leadsByUser['agendamentos_por_lead'] = 0
                 df_leadsByUser['agendamentos_por_lead'] = df_leadsByUser['messages_count_by_status'].apply(extract_agendamentos)
-                df_leadsByUser = df_leadsByUser.rename(columns={
+                df_leadsByUser = df_leadsByUser.rename(columns={ 
                     'name': 'Atendente',
                     'messages_count': 'Leads Puxados',
                     'unique_messages_count': 'Leads Puxados (únicos)',
@@ -126,7 +133,6 @@ def load_page_leadsByStore():
                 # filtered = agendamentos that match start_date - rule #3
                 df_appointments_agendamentos_filtered_coc_rules = df_appointments_agendamentos[df_appointments_agendamentos['data_primeira_atendente_is_start_date?'] == True]
                 
-                # manhã
                 df_appointments_atendentes = df_appointments_agendamentos_filtered_coc_rules[
                     df_appointments_agendamentos_filtered_coc_rules['Nome da primeira atendente']
                     .isin(atendentes_puxadas_total['Atendente'])]
@@ -155,6 +161,9 @@ def load_page_leadsByStore():
                     'Atendente': 'count',
                     'Tam': 'first'
                 }).reset_index()
+                # TODO:
+                # 1) Split df in 3: P, M, G
+                # 2) Month average start_date_custom, end_date_custom
                 
                 st.subheader("Leads e Agendamentos por Loja")
                 st.dataframe(

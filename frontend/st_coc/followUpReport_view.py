@@ -48,7 +48,7 @@ def load_page_followUpReport_and_followUpCommentsReport():
     Main function to display follow-up report data.
     """
 
-    st.title("📊 2 - Relatório de Pós-Vendas")
+    st.title("📊 3 - Relatório de Pós-Vendas")
     st.markdown("---")
     st.subheader("Selecione o intervalo de datas para o relatório:")
     

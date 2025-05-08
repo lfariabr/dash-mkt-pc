@@ -45,7 +45,7 @@ def groupby_sales_por_procedimento(df_sales):
     """Group sales by procedure."""
     return (
         df_sales
-        .groupby('bill_items')
+        .groupby('Procedimento')
         .agg({'Valor líquido': 'sum'})
         .reset_index()
         .sort_values('Valor líquido', ascending=False)

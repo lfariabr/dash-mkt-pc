@@ -11,8 +11,8 @@
 - [x] Pós-Vendas e Novos
 - [x] Agendamento por atendente
 - [x] Remover hardcoded Consultoras
-- [ ] Remover hardcoded Atendentes
-- [ ] Criar visualização por lojas
+- [x] Remover hardcoded Atendentes
+- [x] Criar visualização por lojas
 - [ ] Pensar média mensal, como calcular
 
 ### Marketing

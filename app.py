@@ -16,6 +16,7 @@ from frontend.st_coc.adminConsultoras import load_page_adminConsultoras
 from frontend.st_coc.adminAtendentes import load_page_adminAtendentes
 from frontend.st_coc.adminLojas import load_page_adminLojas
 from frontend.st_coc.leadsByStoreReport_view import load_page_leadsByStore
+from frontend.st_coc.salesByDay_view import load_page_salesByDay
 
 from frontend.st_coc.appointmentByUser_view import load_page_appointmentsByUser
 from frontend.st_coc.appointments_view_CreatedAt import load_page_appointments_CreatedAt
@@ -40,6 +41,7 @@ def main():
             "1 - Puxada de Leads": load_page_leadsByUser,
             "2 - Puxadas por Loja": load_page_leadsByStore,
             "3 - Tarefas Pós-Vendas": load_page_followUpReport_and_followUpCommentsReport,
+            "4 - Vendas por Dia": load_page_salesByDay,
             # "3 - Agd Diário": load_page_appointments_CreatedAt,
             # "4 - Agd por Usuário": load_page_appointmentsByUser,
         },
