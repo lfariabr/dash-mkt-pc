@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 from google.oauth2.service_account import Credentials
 from helpers.gsheet import get_gspread_client, get_ss_url
-from utils.discord import send_discord_message
 
 def get_stores_from_spreadsheet():
     """

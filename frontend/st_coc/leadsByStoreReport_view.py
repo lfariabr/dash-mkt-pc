@@ -14,6 +14,7 @@ from helpers.data_wrestler import (
 )
 from frontend.coc.columns import leadsByUserColumns, leadsByUser_display_columns
 from frontend.appointments.appointment_types import procedimento_avaliacao, agendamento_status_por_atendente
+from helpers.discord import send_discord_message
 
 async def fetch_leads_and_appointments(start_date, end_date):
     """
@@ -22,27 +23,42 @@ async def fetch_leads_and_appointments(start_date, end_date):
     
     leads_data = fetch_and_process_leadsByUserReport(start_date, end_date)
     appointments_data = fetch_and_process_appointment_report_created_at(start_date, end_date)
-
-    start_date_custom = ""
-    end_date_custom = ""
-    leads_data_complete_month = fetch_and_process_leadsByUserReport(start_date_custom, end_date_custom)
     
-    # Executing both fetches
-    leads_data, appointments_data = await asyncio.gather(leads_data, appointments_data) # TODO: leads_data_complete_month
-    return leads_data, appointments_data
+    def extract_start_date_and_end_date_of_month(start_date):
+        start_date_custom = pd.to_datetime(start_date)
+        first_day = start_date_custom.replace(day=1)
+        last_day = first_day + pd.offsets.MonthEnd(0)
+        return first_day.strftime('%Y-%m-%d'), last_day.strftime('%Y-%m-%d')
+    month_start_date, month_end_date = extract_start_date_and_end_date_of_month(start_date)
+    
+    print("start_date", start_date)
+    print("end_date", end_date)
+    print("month_start_date", month_start_date)
+    print("month_end_date", month_end_date)
 
+    leads_data_task = asyncio.create_task(fetch_and_process_leadsByUserReport(start_date, end_date))
+    appointments_data_task = asyncio.create_task(fetch_and_process_appointment_report_created_at(start_date, end_date))
+    leads_data_complete_month_task = asyncio.create_task(fetch_and_process_leadsByUserReport(month_start_date, month_end_date))
+
+    leads_data, appointments_data, leads_data_complete_month = await asyncio.gather(
+        leads_data_task,
+        appointments_data_task,
+        leads_data_complete_month_task
+    )
+
+    return leads_data, appointments_data, leads_data_complete_month
 
 def load_data(start_date=None, end_date=None):
     if start_date and end_date:
         try:
-            leads_data, appointments_data = asyncio.run(fetch_leads_and_appointments(start_date, end_date))
-            return pd.DataFrame(leads_data), pd.DataFrame(appointments_data)
+            leads_data, appointments_data, leads_data_complete_month = asyncio.run(fetch_leads_and_appointments(start_date, end_date))
+            return pd.DataFrame(leads_data), pd.DataFrame(appointments_data), pd.DataFrame(leads_data_complete_month)
         except Exception as e:
             st.error(f"Erro ao carregar dados: {str(e)}")
-            return pd.DataFrame(), pd.DataFrame()
+            return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
     else:
         st.warning("Por favor, selecione um intervalo de datas.")
-        return pd.DataFrame(), pd.DataFrame()
+        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
 def load_page_leadsByStore():
     """Main function to display leads by user data."""
@@ -54,14 +70,11 @@ def load_page_leadsByStore():
     start_date, end_date = date_input()
     
     if st.button("Carregar"):
-        from utils.discord import send_discord_message
         send_discord_message(f"Loading data in page leadsByStoreReport_view")
         with st.spinner("Carregando dados..."):
-            df_leadsByUser, df_appointments = load_data(start_date, end_date)
+            df_leadsByUser, df_appointments, df_leadsByUser_complete_month = load_data(start_date, end_date)
 
-            # df_leadsByUser_complete_month = load_data(start_date_custom, end_date_custom)
-            
-            if df_leadsByUser.empty or df_appointments.empty:
+            if df_leadsByUser.empty or df_appointments.empty or df_leadsByUser_complete_month.empty:
                 st.warning("Não foram encontrados dados para o período selecionado.")
 
             else:
@@ -161,16 +174,42 @@ def load_page_leadsByStore():
                     'Atendente': 'count',
                     'Tam': 'first'
                 }).reset_index()
-                # TODO:
+                
                 # 1) Split df in 3: P, M, G
-                # 2) Month average start_date_custom, end_date_custom
+                df_leadsByStore_and_appointments_totals_P = df_leadsByStore_and_appointments_totals[df_leadsByStore_and_appointments_totals['Tam'] == 'P']
+                df_leadsByStore_and_appointments_totals_M = df_leadsByStore_and_appointments_totals[df_leadsByStore_and_appointments_totals['Tam'] == 'M']
+                df_leadsByStore_and_appointments_totals_G = df_leadsByStore_and_appointments_totals[df_leadsByStore_and_appointments_totals['Tam'] == 'G']
                 
                 st.subheader("Leads e Agendamentos por Loja")
                 st.dataframe(
                     apply_formatting_leadsByStore(df_leadsByStore_and_appointments_totals),
                     hide_index=True,
                     height=len(df_leadsByStore_and_appointments_totals)* 45, 
-                    use_container_width=True)
+                    )
+                
+                st.subheader("Leads e Agendamentos por Loja (P)")
+                st.dataframe(
+                    apply_formatting_leadsByStore(df_leadsByStore_and_appointments_totals_P),
+                    hide_index=True,
+                    )
+                
+                st.subheader("Leads e Agendamentos por Loja (M)")
+                st.dataframe(
+                    apply_formatting_leadsByStore(df_leadsByStore_and_appointments_totals_M),
+                    hide_index=True,
+                    )
+                
+                st.subheader("Leads e Agendamentos por Loja (G)")
+                st.dataframe(
+                    apply_formatting_leadsByStore(df_leadsByStore_and_appointments_totals_G),
+                    hide_index=True,
+                    )
+                
+                st.subheader("DEBUGGING df_leadsByUser_complete_month")
+                st.dataframe(df_leadsByUser_complete_month)
+
+                # TODO
+                # 2) Month average start_date_custom, end_date_custom
 
                 # Debugging appointments of Atendente "Ingrid Caroline Santos Andrade"
                 # df_appointments_atendentes_ingrid = df_appointments_agendamentos_filtered_coc_rules[df_appointments_agendamentos_filtered_coc_rules['Nome da primeira atendente'] == 'Ingrid Caroline Santos Andrade']

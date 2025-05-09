@@ -11,6 +11,7 @@ from frontend.sales.sales_grouper import (
                                         groupby_sales_por_vendedoras,
                                         groupby_sales_por_procedimento)
 from components.date_input import date_input
+from helpers.discord import send_discord_message
 
 def load_data(start_date=None, end_date=None, use_api=False):
     """
@@ -107,7 +108,6 @@ def load_page_salesByDay():
     start_date, end_date = date_input()
     
     if st.button("Carregar"):
-        from utils.discord import send_discord_message
         send_discord_message(f"Loading data in page salesByDay_view")
         with st.spinner("Carregando dados..."):
             df_sales = load_data(start_date, end_date)

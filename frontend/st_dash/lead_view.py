@@ -4,11 +4,12 @@ import plotly.express as px
 from pathlib import Path
 from datetime import datetime, timedelta
 import asyncio
-from data.sources import paid_sources, organic_sources
-from data.stores import stores_to_remove
-from data.date_intervals import days_map, available_periods
+from frontend.marketing.leads_cleaner import (
+                    paid_sources, 
+                    organic_sources, 
+                    stores_to_remove_leads)
+                    
 from components.headers import header_leads
-from helpers.date import transform_date_from_leads
 from frontend.leads.lead_category import process_lead_categories
 from frontend.leads.leads_grouper import (
                                         groupby_leads_por_dia,
@@ -20,6 +21,7 @@ from frontend.leads.leads_grouper import (
                                     )
 from apiCrm.resolvers.dashboard.fetch_leadReport import fetch_and_process_lead_report
 from components.date_input import date_input
+from helpers.discord import send_discord_message
 
 def load_data(start_date=None, end_date=None, use_api=False):
     """
@@ -80,7 +82,7 @@ def load_data(start_date=None, end_date=None, use_api=False):
         return pd.DataFrame()
         
     # Apply common transformations
-    df = df.loc[~df['Unidade'].isin(stores_to_remove)]
+    df = df.loc[~df['Unidade'].isin(stores_to_remove_leads)]
     
     return df
 
@@ -101,7 +103,6 @@ def load_page_leads():
     start_date, end_date = date_input()
     
     if st.button("Carregar"):
-        from utils.discord import send_discord_message
         send_discord_message(f"Loading data in page leads_view")
         with st.spinner("Carregando dados..."):
             df_leads = load_data(start_date, end_date)

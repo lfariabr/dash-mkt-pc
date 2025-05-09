@@ -530,7 +530,7 @@ def append_total_rows_leadsByStore(df, label_col='Unidade'):
         if col in df.columns:
             totals_row[col] = ''
 
-    totals_row[label_col] = 'Total'
+    totals_row[label_col] = ' Total'
 
     return pd.concat([df, totals_row.to_frame().T], ignore_index=True)
 

@@ -8,9 +8,6 @@ import pandas as pd
 from datetime import datetime
 
 from helpers.cleaner import clean_telephone
-from data.procedures import procedimentos_que_vamos_olhar
-from data.procedures import aesthetic_procedures_aval
-from frontend.appointments.appointment_columns import appointments_clean_columns
 from frontend.appointments.appointment_cleaner import ( 
     filter_relevant_appointments_to_mkt,
     filter_appointments_aval_comparecimentos, 

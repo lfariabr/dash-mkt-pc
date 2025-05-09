@@ -1,10 +1,54 @@
 import pandas as pd
 import re
 from datetime import datetime
-
 from helpers.cleaner import clean_telephone
-from data.procedures import procedimentos_que_vamos_olhar
-from data.procedures import aesthetic_procedures_aval
+
+status_agendamentos_dash = ['Atendido', 'Falta']
+status_comparecimentos_dash = ['Atendido', 'Agendado']
+
+status_agendamentos_marketing = ['Agendado', 'Falta', 'Cancelado', 'Abandono', 'Confirmado']
+status_comparecimentos_marketing = ['Atendido']
+
+stores_to_remove = [
+                    # 'HOMA',
+                    # 'PLÁSTICA',
+                    # 'PRAIA GRANDE',
+                    # 'CENTRAL'
+]
+
+aesthetic_procedures_aval = [
+                            # pro-corpo:
+                            'AVALIAÇÃO TATUAGEM',
+                            'AVALIAÇÃO INJETÁVEIS E INVASIVOS',
+                            'AVALIAÇÃO ESTÉTICA',
+                            'AVALIAÇÃO DEPILAÇÃO',
+                            'AVALIAÇÃO MEDICINA ESTÉTICA',
+                            
+                            # cirurgia:
+                            'AVALIAÇÃO MAMOPLASTIA',
+                            'AVALIAÇÃO PLÁSTICA DE ABDÔMEN',
+                            'AVALIAÇÃO MAMOPLASTIA COM PRÓTESE',
+                            'AVALIAÇÃO LIPOASPIRAÇÃO',
+                            'AVALIAÇÃO PRÓTESE DE MAMA',
+                            'AVALIAÇÃO RINOPLASTIA',
+                            'AVALIAÇÃO BLEFAROPLASTIA',
+                            'AVALIAÇÃO RITIDOPLASTIA',
+                            'AVALIAÇÃO CIRURGIA ÍNTIMA',
+                            'SEGUNDA OPINIÃO (AVALIAÇÃO CIRURGIA)',
+                            
+                            # not in use:
+                            #'RETORNO DE AVALIAÇÃO (ENTREGA EXAMES)',
+                            #'RETORNO CIRURGIA PLÁSTICA',
+]
+
+# Filter for only relevant procedures
+procedimentos_que_vamos_olhar = [
+        'AVALIAÇÃO TATUAGEM',
+        'AVALIAÇÃO INJETÁVEIS E INVASIVOS',
+        'AVALIAÇÃO ESTÉTICA',
+        'AVALIAÇÃO DEPILAÇÃO',
+        'AVALIAÇÃO MEDICINA ESTÉTICA'
+]
 
 def explode_phone_numbers(df, phone_col='Telefones Limpos'):
     """

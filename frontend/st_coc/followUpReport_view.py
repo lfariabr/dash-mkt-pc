@@ -16,14 +16,14 @@ from frontend.coc.columns import (
 from helpers.data_wrestler import highlight_total_row, append_totals_row, enrich_consultora_df
 from frontend.coc.consultoras import get_consultora_from_spreadsheet
 from helpers.coc_worker import normalize_name, apply_formatting_followUpReport
-
+from helpers.discord import send_discord_message
 
 
 async def fetch_all_data(start_date, end_date):
     """Run both API calls concurrently to improve performance"""
-    entries_task = fetch_and_process_followUpEntriesReport(start_date, end_date)
-    comments_task = fetch_and_process_followUpsCommentsReport(start_date, end_date)
-    gross_sales_task = fetch_and_process_grossSales_report(start_date, end_date)
+    entries_task = asyncio.create_task(fetch_and_process_followUpEntriesReport(start_date, end_date))
+    comments_task = asyncio.create_task(fetch_and_process_followUpsCommentsReport(start_date, end_date))
+    gross_sales_task = asyncio.create_task(fetch_and_process_grossSales_report(start_date, end_date))
     
     # Execute both tasks concurrently
     entries_data, comments_data, gross_sales_data = await asyncio.gather(entries_task, comments_task, gross_sales_task)
@@ -55,7 +55,6 @@ def load_page_followUpReport_and_followUpCommentsReport():
     start_date, end_date = date_input()
     
     if st.button("Carregar"):
-        from utils.discord import send_discord_message
         send_discord_message(f"Loading data in page followUpReport_view")
         with st.spinner("Carregando dados..."):
 

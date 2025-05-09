@@ -14,16 +14,16 @@ from helpers.data_wrestler import (
 )
 from frontend.coc.columns import leadsByUserColumns, leadsByUser_display_columns
 from frontend.appointments.appointment_types import procedimento_avaliacao, agendamento_status_por_atendente
+from helpers.discord import send_discord_message
 
 async def fetch_leads_and_appointments(start_date, end_date):
     """
     Run both API calls concurrently to improve performance.
     """
-    leads_data = fetch_and_process_leadsByUserReport(start_date, end_date)
-    appointments_data = fetch_and_process_appointment_report_created_at(start_date, end_date)
+    leads_data_task = asyncio.create_task(fetch_and_process_leadsByUserReport(start_date, end_date))
+    appointments_data_task = asyncio.create_task(fetch_and_process_appointment_report_created_at(start_date, end_date))
 
-    # Executing both fetches
-    leads_data, appointments_data = await asyncio.gather(leads_data, appointments_data)
+    leads_data, appointments_data = await asyncio.gather(leads_data_task, appointments_data_task)
     return leads_data, appointments_data
 
 
@@ -49,7 +49,6 @@ def load_page_leadsByUser():
     start_date, end_date = date_input()
     
     if st.button("Carregar"):
-        from utils.discord import send_discord_message
         send_discord_message(f"Loading data in page leadsByUserReport_view")
         with st.spinner("Carregando dados..."):
             df_leadsByUser, df_appointments = load_data(start_date, end_date)

@@ -4,7 +4,6 @@ import plotly.express as px
 from pathlib import Path
 from datetime import datetime, timedelta
 import asyncio
-from data.stores import stores_to_remove
 from components.headers import header_appointments
 from apiCrm.resolvers.dashboard.fetch_appointmentReport import fetch_and_process_appointment_report 
 from frontend.appointments.appointment_columns import appointments_api_clean_columns
@@ -22,6 +21,7 @@ from frontend.appointments.appointments_grouper import (
                                                     groupby_agendamentos_por_dia_pivoted,
                                                     groupby_agendamentos_por_dia_e_status_transposed)
 from components.date_input import date_input
+from helpers.discord import send_discord_message
 
 def load_data(start_date=None, end_date=None, use_api=False):
     """
@@ -81,7 +81,6 @@ def load_page_appointments():
     start_date, end_date = date_input()
         
     if st.button("Carregar"):
-        from utils.discord import send_discord_message
         send_discord_message(f"Loading data in page appointments_view")
         with st.spinner("Carregando dados..."):
             df_appointments = load_data(start_date, end_date)

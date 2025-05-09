@@ -4,10 +4,7 @@ import plotly.express as px
 from pathlib import Path
 from datetime import datetime, timedelta
 import asyncio
-from data.stores import stores_to_remove
-from data.date_intervals import days_map, available_periods
 from components.headers import header_sales
-from helpers.date import transform_date_from_sales
 from apiCrm.resolvers.dashboard.fetch_grossSalesReport import fetch_and_process_grossSales_report 
 from frontend.sales.sales_grouper import (
                                         groupby_sales_por_dia,
@@ -16,6 +13,7 @@ from frontend.sales.sales_grouper import (
                                         groupby_sales_por_vendedoras,
                                         groupby_sales_por_procedimento)
 from components.date_input import date_input
+from helpers.discord import send_discord_message
 
 def load_data(start_date=None, end_date=None, use_api=False):
     """
@@ -122,7 +120,6 @@ def load_page_sales():
     start_date, end_date = date_input()
     
     if st.button("Carregar"):
-        from utils.discord import send_discord_message
         send_discord_message(f"Loading data in page sales_view")
         with st.spinner("Carregando dados..."):
             df_sales = load_data(start_date, end_date)
@@ -226,15 +223,16 @@ def load_page_sales():
                 st.plotly_chart(grafico_vendas_por_profissao_top10)
 
             with col2:
+                # extract "procedimento" from "bill_items"
+                df_sales['Procedimento'] = df_sales['bill_items'].str.split('(').str[0]
                 groupby_vendas_por_procedimento = groupby_sales_por_procedimento(df_sales)
-                # st.dataframe(groupby_vendas_por_procedimento)
-
+                
                 grafico_vendas_por_procedimento = px.pie(
                         groupby_vendas_por_procedimento,
-                        names='bill_items',
+                        names='Procedimento',
                         values='Valor líquido', # : 'sum'
                         title='Valor comprado por Procedimento - Top10',
-                        labels={'Valor líquido': 'Valor Comprado', 'bill_items': 'Procedimento'},
+                        labels={'Valor líquido': 'Valor Comprado', 'Procedimento': 'Procedimento'},
                     )
                 st.plotly_chart(grafico_vendas_por_procedimento)
                 

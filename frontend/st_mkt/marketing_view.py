@@ -8,11 +8,11 @@ import requests
 import json
 from typing import List, Dict, Any, Optional
 import io
+import sys
+import logging
 
 # Support functions
-from data.stores import stores_to_remove
-from data.procedures import aesthetic_procedures_aval
-from data.appointment_status import status_agendamentos_marketing, status_comparecimentos_marketing
+from frontend.marketing.apt_cleaner import aesthetic_procedures_aval, stores_to_remove, status_agendamentos_marketing, status_comparecimentos_marketing
 from frontend.appointments.appointment_columns import appointments_clean_columns
 from frontend.sales.sale_columns import sales_clean_columns
 from frontend.marketing.marketing_columns import marketing_clean_columns
@@ -32,9 +32,8 @@ from frontend.marketing.marketing_grouper import ( groupby_marketing_by_category
 from frontend.marketing.worker import *
 from frontend.marketing.sales_checker import check_if_lead_has_purchased
 from helpers.cleaner import columns_to_hide_from_final_df_leads_appointments_sales
-import sys
+from helpers.discord import send_discord_message
 
-import logging
 logging.basicConfig(level=logging.INFO)
 
 # Add backend to sys.path if needed
@@ -176,7 +175,7 @@ def load_page_marketing():
                     "Play",
                     icon="🎲", 
                     type="primary"):
-            from utils.discord import send_discord_message
+            
             send_discord_message(f"Loading data in page marketing_view")
 
             st.markdown("---")
