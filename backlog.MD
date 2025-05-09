@@ -13,9 +13,12 @@
 - [x] Remover hardcoded Consultoras
 - [x] Remover hardcoded Atendentes
 - [x] Criar visualização por lojas
-- [ ] Pensar média mensal, como calcular
+- [x] Exibir P, M, G das lojas
+- [x] Async request leadsByUser + appointments + appointmentsMonth
+- [ ] Calcular média mensal e plugar no dataframe
 
 ### Marketing
 - [x] Lead x Appointment x Sales analyzer
 - [x] DB Integration
 - [ ] Adjust columns to match mkt team requests
+- [ ] Adjust categorize function to match mkt team requests

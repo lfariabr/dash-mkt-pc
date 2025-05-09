@@ -30,11 +30,6 @@ async def fetch_leads_and_appointments(start_date, end_date):
         last_day = first_day + pd.offsets.MonthEnd(0)
         return first_day.strftime('%Y-%m-%d'), last_day.strftime('%Y-%m-%d')
     month_start_date, month_end_date = extract_start_date_and_end_date_of_month(start_date)
-    
-    print("start_date", start_date)
-    print("end_date", end_date)
-    print("month_start_date", month_start_date)
-    print("month_end_date", month_end_date)
 
     leads_data_task = asyncio.create_task(fetch_and_process_leadsByUserReport(start_date, end_date))
     appointments_data_task = asyncio.create_task(fetch_and_process_appointment_report_created_at(start_date, end_date))
