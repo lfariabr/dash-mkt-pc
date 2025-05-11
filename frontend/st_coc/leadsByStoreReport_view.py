@@ -95,18 +95,9 @@ def load_page_leadsByStore():
                 atendentes_puxadas_manha, atendentes_puxadas_tarde = get_atendente_from_spreadsheet()
                 atendentes_puxadas_total = pd.concat([atendentes_puxadas_manha, atendentes_puxadas_tarde])
 
-                # Normalizing
                 atendentes_puxadas_total['Atendente'] = atendentes_puxadas_total['Atendente'].apply(normalize_name)
                 atendentes_puxadas_total['Unidade'] = atendentes_puxadas_total['Unidade'].apply(normalize_name)
                 df_leadsByUser['Atendente'] = df_leadsByUser['Atendente'].apply(normalize_name)
-                
-                # DEBUGGING - PRINTING THE DATAFRAMES BEFORE WE MOVE
-                # st.write("df pro_corpo_stores")
-                # st.dataframe(pro_corpo_stores)
-                # st.write("df_leadsByUser")
-                # st.dataframe(df_leadsByUser)
-                # st.write("atendentes_puxadas_total")
-                # st.dataframe(atendentes_puxadas_total)
 
                 # Step 1: filter leadsByUser where 'Atendente' matches the 'Atendente' in atendentes_puxadas_total 
                 df_leadsByUser_total = df_leadsByUser[df_leadsByUser['Atendente'].isin(atendentes_puxadas_total['Atendente'])]
@@ -175,12 +166,12 @@ def load_page_leadsByStore():
                 df_leadsByStore_and_appointments_totals_M = df_leadsByStore_and_appointments_totals[df_leadsByStore_and_appointments_totals['Tam'] == 'M']
                 df_leadsByStore_and_appointments_totals_G = df_leadsByStore_and_appointments_totals[df_leadsByStore_and_appointments_totals['Tam'] == 'G']
                 
-                st.subheader("Leads e Agendamentos por Loja")
-                st.dataframe(
-                    apply_formatting_leadsByStore(df_leadsByStore_and_appointments_totals),
-                    hide_index=True,
-                    height=len(df_leadsByStore_and_appointments_totals)* 45, 
-                    )
+                # st.subheader("Leads e Agendamentos por Loja")
+                # st.dataframe(
+                #     apply_formatting_leadsByStore(df_leadsByStore_and_appointments_totals),
+                #     hide_index=True,
+                #     height=len(df_leadsByStore_and_appointments_totals)* 45, 
+                #     )
                 
                 st.subheader("Leads e Agendamentos por Loja (P)")
                 st.dataframe(
@@ -200,15 +191,49 @@ def load_page_leadsByStore():
                     hide_index=True,
                     )
                 
-                st.subheader("DEBUGGING df_leadsByUser_complete_month")
-                st.dataframe(df_leadsByUser_complete_month)
+                df_leadsByUser_complete_month = df_leadsByUser_complete_month[leadsByUserColumns]
+                df_leadsByUser_complete_month['agendamentos_por_lead'] = 0
+                df_leadsByUser_complete_month['agendamentos_por_lead'] = df_leadsByUser_complete_month['messages_count_by_status'].apply(extract_agendamentos)
+                df_leadsByUser_complete_month = df_leadsByUser_complete_month.rename(columns={ 
+                    'name': 'AtendenteCRM',
+                    'messages_count': 'Leads Puxados',
+                    'unique_messages_count': 'Leads Puxados (únicos)',
+                    'agendamentos_por_lead': 'Agendamentos por lead',
+                    'local': 'UnidadeCRM',
+                    'Tam': 'Tam',
+                    'turno': 'Turno',
+                    'success_rate': 'Conversão'
+                })
+                df_leadsByUser_complete_month = df_leadsByUser_complete_month.reset_index(drop=True)
+                df_leadsByUser_complete_month = df_leadsByUser_complete_month.sort_values(by='Leads Puxados', ascending=False)
 
-                # TODO
-                # 2) Month average start_date_custom, end_date_custom
+                # Merge with atendentes_puxadas_total to enrich with additional info (like Unidade, Turno, Tam)
+                df_leadsByUser_complete_month_with_appointments = pd.merge(
+                    df_leadsByUser_complete_month,
+                    atendentes_puxadas_total,
+                    left_on='AtendenteCRM',
+                    right_on='Atendente',
+                    how='left'
+                )
+                st.subheader("DEBUGGING df_leadsByUser_complete_month + appointments")
+                st.dataframe(df_leadsByUser_complete_month_with_appointments)
 
-                # Debugging appointments of Atendente "Ingrid Caroline Santos Andrade"
-                # df_appointments_atendentes_ingrid = df_appointments_agendamentos_filtered_coc_rules[df_appointments_agendamentos_filtered_coc_rules['Nome da primeira atendente'] == 'Ingrid Caroline Santos Andrade']
-                # df_appointments_atendentes_ingrid_valid = df_appointments_atendentes_ingrid[df_appointments_atendentes_ingrid['data_primeira_atendente_is_start_date?'] == True]
-                # st.subheader(f"Debugging appointments from 'Ingrid Caroline Santos Andrade': {len(df_appointments_atendentes_ingrid_valid)}")
-                # st.dataframe(df_appointments_atendentes_ingrid_valid, hide_index=True)
-                
+                # Remove undesired columns
+                # TODO: I'm here
+                desired_columns = ['Unidade', 'Leads Puxados', 'Agendamentos por lead', 'Agendamentos na Agenda']
+                df_leadsByUser_complete_month_with_appointments = df_leadsByUser_complete_month_with_appointments[desired_columns]
+
+                # groupby per Unidade calculating their monthly averages
+                df_leadsByUser_complete_month_with_appointments = df_leadsByUser_complete_month_with_appointments.groupby('Unidade').agg({
+                    'Leads Puxados': 'mean',
+                    'Agendamentos por lead': 'mean',
+                    'Agendamentos na Agenda': 'mean'
+                }).reset_index()
+
+                # merge this info back to df_leadsByStore_and_appointments_totals
+                df_leadsByStore_and_appointments_totals = pd.merge(
+                    df_leadsByStore_and_appointments_totals,
+                    df_leadsByUser_complete_month_with_appointments,
+                    on='Unidade',
+                    how='left'
+                )                
