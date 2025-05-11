@@ -1,29 +1,41 @@
+import re
+
 # Key, Category
 category_mapping = {
     # Pró-Corpo
     'Preenchimento': 'Preenchimento',
     'Botox': 'Botox',
     'Ultraformer': 'Ultraformer',
+    'Ultrassom': 'Ultraformer',
+    'Gordura' : 'Enzimas',
     'Enzimas': 'Enzimas',
     'Lavieen': 'Lavieen',
     'Sculptra': 'Bioestimulador',
     'Bioestimulador': 'Bioestimulador',
     'Institucional': 'Institucional',
     'Crio': 'Crio',
+    'Criolipólise': 'Crio',
     'Limpeza': 'Limpeza',
     'olheiras': 'Preenchimento',
     'prolipo' : 'Enzimas',
     'Prolipo' : 'Enzimas',
     'rugas' : 'Botox',
-    
+
+    'gluteomax' : 'Gluteo Max',
+    'Glúteo Max' : 'Gluteo Max',
+    'preenchimentocorporal': 'Preenchimento Corporal',
+    'preenchimentocorporaltodas': 'Preenchimento Corporal',
+
     # Cirurgia
     'Lipoaspiração': 'Lipoaspiração',
     'Abdominoplastia': 'Abdominoplastia',
     'Mastopexia': 'Mastopexia',
+    'Rinoplastia' : 'Rinoplastia',
     'Prótese de Mama': 'Prótese de Mama',
     'Mamoplastia Redutora': 'Mamoplastia',
     'Mamoplastia': 'Mamoplastia',
     'Cirurgia': 'Cirurgia',
+    'Silicone': 'Prótese de Mama',
 }
 
 def categorize(text):
@@ -55,5 +67,7 @@ def process_lead_categories(df_leads):
     df_leads.loc[(df_leads['Mensagem'] == 'Lead Pop Up de Saída. Ganhou Peeling Diamante.') & (df_leads['Categoria'] == 'Indefinido'), 'Categoria'] = 'Cortesia PopUpSaida Peeling_D'
     df_leads.loc[(df_leads['Mensagem'] == 'Lead Pop Up de Saída. Ganhou Massagem Modeladora.') & (df_leads['Categoria'] == 'Indefinido'), 'Categoria'] = 'Cortesia PopUpSaida Mass_Mod'
     df_leads.loc[(df_leads['Mensagem'] == 'Lead salvo pelo modal de WhatsApp da Isa') & (df_leads['Categoria'] == 'Indefinido'), 'Categoria'] = 'Quer Falar no Whatsapp'
+
+    df_leads.loc[(df_leads['Content'].str.contains('preenchimentocorporal')) & (df_leads['Categoria'] == 'Preenchimento'), 'Categoria'] = 'Preenchimento Corporal'
     
     return df_leads
