@@ -20,6 +20,7 @@ from frontend.st_coc.salesByDay_view import load_page_salesByDay
 
 from frontend.st_coc.appointmentByUser_view import load_page_appointmentsByUser
 from frontend.st_coc.appointments_view_CreatedAt import load_page_appointments_CreatedAt
+from frontend.st_coc.admin import load_page_admin
 
 st.set_page_config(
     page_title="Pró-Corpo BI",
@@ -42,8 +43,9 @@ def main():
             "2 - Puxadas por Loja": load_page_leadsByStore,
             "3 - Tarefas Pós-Vendas": load_page_followUpReport_and_followUpCommentsReport,
             "4 - Vendas por Dia": load_page_salesByDay,
-            # "3 - Agd Diário": load_page_appointments_CreatedAt,
-            # "4 - Agd por Usuário": load_page_appointmentsByUser,
+            "5 - Admin": load_page_admin,
+            # "Agd Diário": load_page_appointments_CreatedAt,
+            # "Agd por Usuário": load_page_appointmentsByUser,
         },
         "Dash": {
             "1 - Leads": load_page_leads,
@@ -53,11 +55,6 @@ def main():
         "Marketing": {
             "1 - Funil": load_page_marketing,
             # "2 - Histórico": load_page_mkt_leads, # deprecated
-        },
-        "Admin": {
-            "1 - Consultoras": load_page_adminConsultoras,
-            "2 - Atendentes": load_page_adminAtendentes,
-            "3 - Lojas": load_page_adminLojas,
         }
     }
     

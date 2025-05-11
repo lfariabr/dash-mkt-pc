@@ -73,7 +73,7 @@ def create_time_filtered_df(df, days=None):
 def load_page_marketing():
     """Main function to display sales data."""
 
-    st.title("📊 0 - Marketing ")
+    st.title("📊 1 - Funil de Leads ")
 
     df_leads, df_appointments, df_sales = None, None, None  # Initialize variables
     col1, col2, col3 = st.columns(3)    

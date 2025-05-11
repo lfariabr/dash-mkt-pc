@@ -12,12 +12,11 @@ def load_page_adminConsultoras():
         df_consultoras: DataFrame containing consultoras data
     """
 
-    st.title("💎 Admin")
+    st.title("💎 Consultoras")
     st.markdown("---")
-    st.subheader("Lista de Consultoras")
 
     # Botão para carregar dados ou manter se já estiverem no session_state
-    if st.button("Carregar") or "df_consultoras" in st.session_state:
+    if st.button("Carregar", key="consultoras") or "df_consultoras" in st.session_state:
         if "df_consultoras" not in st.session_state:
             send_discord_message(f"Loading data in page adminConsultoras")
             with st.spinner("Carregando dados..."):

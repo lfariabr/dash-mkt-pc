@@ -11,12 +11,11 @@ def load_page_adminLojas():
     Returns:
         df_lojas: DataFrame containing lojas data
     """
-    st.title("💎 Admin")
+    st.title("💎 Lojas")
     st.markdown("---")
-    st.subheader("Lista de Lojas")
 
     # Botão para carregar dados ou manter se já estiverem no session_state
-    if st.button("Carregar") or "df_lojas" in st.session_state:
+    if st.button("Carregar", key="lojas") or "df_lojas" in st.session_state:
         if "df_lojas" not in st.session_state:
             send_discord_message("Loading data in page adminLojas")
             with st.spinner("Carregando dados..."):
@@ -57,7 +56,7 @@ def load_page_adminLojas():
             # Formulário para inserir nova loja
             with st.form("lojas_form"):
                 loja = st.text_input("Loja")
-                tamanho = st.text_input("Tam")
+                tamanho = st.selectbox("Tam", ["P", "M", "G"])
                 submit = st.form_submit_button("Adicionar")
 
                 if submit:
