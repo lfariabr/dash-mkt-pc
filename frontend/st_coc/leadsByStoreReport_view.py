@@ -149,7 +149,6 @@ def load_page_leadsByStore():
                 df_leadsByUser_and_appointments = df_leadsByUser_and_appointments.fillna(0)
                 df_leadsByUser_and_appointments = df_leadsByUser_and_appointments.rename(columns={'ID agendamento': 'Agendamentos na Agenda'})
 
-                # --- Adding TOTALS before displaying ---
                 df_leadsByUser_and_appointments_totals = append_total_rows_leadsByStore(df_leadsByUser_and_appointments)
                 
                 # Grouping by "Unidade"
@@ -161,7 +160,6 @@ def load_page_leadsByStore():
                     'Tam': 'first'
                 }).reset_index()
                 
-                # 1) Split df in 3: P, M, G
                 df_leadsByStore_and_appointments_totals_P = df_leadsByStore_and_appointments_totals[df_leadsByStore_and_appointments_totals['Tam'] == 'P']
                 df_leadsByStore_and_appointments_totals_M = df_leadsByStore_and_appointments_totals[df_leadsByStore_and_appointments_totals['Tam'] == 'M']
                 df_leadsByStore_and_appointments_totals_G = df_leadsByStore_and_appointments_totals[df_leadsByStore_and_appointments_totals['Tam'] == 'G']
@@ -207,33 +205,69 @@ def load_page_leadsByStore():
                 df_leadsByUser_complete_month = df_leadsByUser_complete_month.reset_index(drop=True)
                 df_leadsByUser_complete_month = df_leadsByUser_complete_month.sort_values(by='Leads Puxados', ascending=False)
 
-                # Merge with atendentes_puxadas_total to enrich with additional info (like Unidade, Turno, Tam)
-                df_leadsByUser_complete_month_with_appointments = pd.merge(
+                # (store_info = Unidade, Turno, Tam)
+                df_leadsByUser_complete_month_with_store_info = pd.merge(
                     df_leadsByUser_complete_month,
                     atendentes_puxadas_total,
                     left_on='AtendenteCRM',
                     right_on='Atendente',
                     how='left'
-                )
-                st.subheader("DEBUGGING df_leadsByUser_complete_month + appointments")
-                st.dataframe(df_leadsByUser_complete_month_with_appointments)
+                ) # extra merge to deal with other users COC wants to track which are not "Atendente"
+                
+                st.subheader("DEBUGGING df_leadsByUser_complete_month + store_info")
+                st.dataframe(df_leadsByUser_complete_month_with_store_info)
 
-                # Remove undesired columns
-                # TODO: I'm here
-                desired_columns = ['Unidade', 'Leads Puxados', 'Agendamentos por lead', 'Agendamentos na Agenda']
-                df_leadsByUser_complete_month_with_appointments = df_leadsByUser_complete_month_with_appointments[desired_columns]
-
-                # groupby per Unidade calculating their monthly averages
-                df_leadsByUser_complete_month_with_appointments = df_leadsByUser_complete_month_with_appointments.groupby('Unidade').agg({
-                    'Leads Puxados': 'mean',
-                    'Agendamentos por lead': 'mean',
-                    'Agendamentos na Agenda': 'mean'
+                desired_columns = ['Unidade', 'Leads Puxados', 'Agendamentos por lead', 'Tam']
+                df_leadsByUser_complete_month_with_appointments_reduced = df_leadsByUser_complete_month_with_store_info[desired_columns]
+                
+                df_leadsByUser_complete_month_with_appointments_groupedByStore = df_leadsByUser_complete_month_with_appointments_reduced.groupby('Unidade').agg({
+                    # needs to sum / running days which are not sunday
+                    'Leads Puxados': 'mean', 
+                    'Agendamentos por lead': 'mean' 
                 }).reset_index()
+
+                st.subheader("DEBUGGING df_leadsByUser_complete_month_with_appointments grouped by store")
+                df_leadsByUser_complete_month_with_appointments_groupedByStore = df_leadsByUser_complete_month_with_appointments_groupedByStore.rename(columns={
+                    'Leads Puxados': 'Leads Puxados (média do mês)',
+                    'Agendamentos por lead': 'Agendamentos por lead (média do mês)'
+                })
+                st.dataframe(df_leadsByUser_complete_month_with_appointments_groupedByStore)
 
                 # merge this info back to df_leadsByStore_and_appointments_totals
                 df_leadsByStore_and_appointments_totals = pd.merge(
                     df_leadsByStore_and_appointments_totals,
-                    df_leadsByUser_complete_month_with_appointments,
+                    df_leadsByUser_complete_month_with_appointments_groupedByStore,
                     on='Unidade',
                     how='left'
                 )                
+
+                st.subheader("DEBUGGING df_leadsByStore_and_appointments_totals")
+                df_leadsByStore_and_appointments_totals = df_leadsByStore_and_appointments_totals.rename(columns={
+                    'Atendente' : 'Recepcionistas'
+                })
+                df_leadsByStore_and_appointments_totals = df_leadsByStore_and_appointments_totals[
+                    [
+                        'Unidade',
+                        'Recepcionistas',
+                        'Leads Puxados',
+                        'Leads Puxados (média do mês)',
+                        'Agendamentos por lead',
+                        'Agendamentos por lead (média do mês)',
+                        'Tam'
+                    ]
+                ]
+                st.dataframe(df_leadsByStore_and_appointments_totals)
+
+                df_leadsByStore_and_appointments_totals_stores_p = df_leadsByStore_and_appointments_totals[df_leadsByStore_and_appointments_totals['Tam'] == 'P']
+                df_leadsByStore_and_appointments_totals_stores_m = df_leadsByStore_and_appointments_totals[df_leadsByStore_and_appointments_totals['Tam'] == 'M']
+                df_leadsByStore_and_appointments_totals_stores_g = df_leadsByStore_and_appointments_totals[df_leadsByStore_and_appointments_totals['Tam'] == 'G']
+
+                st.subheader("DEBUGGING df_leadsByStore_and_appointments_totals_stores_p")
+                st.dataframe(df_leadsByStore_and_appointments_totals_stores_p)
+
+                st.subheader("DEBUGGING df_leadsByStore_and_appointments_totals_stores_m")
+                st.dataframe(df_leadsByStore_and_appointments_totals_stores_m)
+
+                st.subheader("DEBUGGING df_leadsByStore_and_appointments_totals_stores_g")
+                st.dataframe(df_leadsByStore_and_appointments_totals_stores_g)
+
