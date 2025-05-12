@@ -42,3 +42,34 @@ def get_stores_from_spreadsheet():
     except Exception as e:
         st.error(f"Erro ao carregar dados das lojas: {str(e)}")
         return pd.DataFrame()
+
+def get_days_from_dashboard():
+    """
+    Get days data from Google Sheets and return DataFrames for morning and afternoon shifts.
+    
+    Returns:
+        tuple: (df_days)
+    
+    Raises:
+        Exception: If there's an error accessing the spreadsheet
+    """
+    try:
+        spreadsheet_url = get_ss_url()
+        client = get_gspread_client()
+
+        # Atendentes
+        sheet_name = client.open_by_url(spreadsheet_url)
+        days = sheet_name.worksheet("dias")
+        dados_days = days.get_all_values()
+        
+        if len(dados_days) <= 1:  # Only header or empty
+            st.warning("Planilha de dias vazia ou sem dados")
+            return pd.DataFrame()
+            
+        df_days = pd.DataFrame(dados_days[1:], columns=dados_days[0])
+    
+        return df_days
+        
+    except Exception as e:
+        st.error(f"Erro ao carregar dados dos dias: {str(e)}")
+        return pd.DataFrame()

@@ -16,7 +16,7 @@
 - [x] Create store view
 - [x] Display S, M, L store sizes
 - [x] Async request leadsByUser + appointments + appointmentsMonth
-- [ ] Calculate monthly average and integrate with dataframe
+- [x] Calculate monthly average and integrate with dataframe
 
 ### Marketing
 - [x] Lead x Appointment x Sales analyzer

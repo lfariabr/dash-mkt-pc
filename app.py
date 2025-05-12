@@ -23,8 +23,8 @@ from frontend.st_coc.appointments_view_CreatedAt import load_page_appointments_C
 from frontend.st_coc.admin import load_page_admin
 
 st.set_page_config(
-    page_title="Pró-Corpo BI",
-    page_icon="🤖",
+    page_title="Relatórios",
+    page_icon="📊",
     layout="wide"
 )
 
